@@ -467,3 +467,111 @@ body {
     font-size: 13px;
   }
 }
+
+/* css phân trang */
+
+/* Section Header với info */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.result-info {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.result-info strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Pagination Container */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 3rem;
+  padding: 2rem 0;
+  flex-wrap: wrap;
+}
+
+/* Pagination Buttons */
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled):not(.dots) {
+  background: #2a2a2a;
+  border-color: #e50914;
+  transform: translateY(-2px);
+}
+
+.pagination-btn.active {
+  background: #e50914;
+  border-color: #e50914;
+  color: #fff;
+  font-weight: 700;
+  transform: scale(1.1);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination-btn.dots {
+  cursor: default;
+  border: none;
+  background: transparent;
+  color: #666;
+}
+
+.pagination-btn.dots:hover {
+  transform: none;
+  border: none;
+  background: transparent;
+}
+
+/* Responsive Pagination */
+@media (max-width: 768px) {
+  .pagination {
+    gap: 0.3rem;
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+  }
+
+  .pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    font-size: 0.85rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .result-info {
+    font-size: 0.85rem;
+  }
+}
