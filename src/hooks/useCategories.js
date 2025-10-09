@@ -11,7 +11,7 @@ function reducer(state, action) {
       return { data: action.payload || [], loading: false, error: "" };
     case "ERROR":
       return {
-        ...state, 
+        ...state,
         loading: false,
         error: action.payload || "Có lỗi xảy ra",
       };
