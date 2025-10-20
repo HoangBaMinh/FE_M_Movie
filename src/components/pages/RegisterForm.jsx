@@ -75,7 +75,7 @@ export default function RegisterForm({ goLogin }) {
         {loading ? "Đang đăng ký..." : "Tạo tài khoản"}
       </button>
 
-      <div style={{ textAlign: "center" }}>
+      <div style={styles.centeredRow}>
         <button type="button" onClick={goLogin} style={styles.linkBtn}>
           Đã có tài khoản? Đăng nhập
         </button>

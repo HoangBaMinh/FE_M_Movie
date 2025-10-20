@@ -1,100 +1,41 @@
-// import { useEffect, useCallback, useState } from "react";
-// import LoginForm from "./pages/LoginForm";
-// import RegisterForm from "./pages/RegisterForm";
-// import ForgotForm from "./pages/ForgotForm";
-// import "../css/AuthModal.css";
-
-// export default function AuthModal({ onClose, onLoginSuccess }) {
-//   const [view, setView] = useState("login"); // "login" | "register" | "forgot"
-
-//   // Hàm đóng modal (không báo hiệu login thành công)
-//   const handleClose = useCallback(() => {
-//     onClose?.();
-//   }, [onClose]);
-
-//   // Hàm xử lý khi login thành công
-//   const handleLoginSuccess = useCallback(() => {
-//     onLoginSuccess?.();
-//   }, [onLoginSuccess]);
-
-//   // đóng bằng phím ESC
-//   const onKey = useCallback(
-//     (e) => {
-//       if (e.key === "Escape") {
-//         handleClose();
-//       }
-//     },
-//     [handleClose]
-//   );
-
-//   useEffect(() => {
-//     window.addEventListener("keydown", onKey);
-//     return () => window.removeEventListener("keydown", onKey);
-//   }, [onKey]);
-
-//   return (
-//     <div className="authModal__backdrop" onClick={handleClose}>
-//       <div className="authModal__panel" onClick={(e) => e.stopPropagation()}>
-//         <button
-//           className="authModal__close"
-//           onClick={handleClose}
-//           aria-label="Đóng"
-//         >
-//           ✕
-//         </button>
-
-//         {view === "login" && (
-//           <LoginForm
-//             onDone={handleLoginSuccess}
-//             goRegister={() => setView("register")}
-//             goForgot={() => setView("forgot")}
-//           />
-//         )}
-
-//         {view === "register" && (
-//           <RegisterForm goLogin={() => setView("login")} />
-//         )}
-
-//         {view === "forgot" && <ForgotForm goLogin={() => setView("login")} />}
-//       </div>
-//     </div>
-//   );
-// }
-
-import { useEffect, useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import LoginForm from "./pages/LoginForm";
 import RegisterForm from "./pages/RegisterForm";
 import ForgotForm from "./pages/ForgotForm";
 import ChangePasswordForm from "./pages/ChangePasswordForm";
 import "../css/AuthModal.css";
 
+const VIEWS = {
+  LOGIN: "login",
+  REGISTER: "register",
+  FORGOT: "forgot",
+  CHANGE_PASSWORD: "changePassword",
+};
+
 export default function AuthModal({
   onClose,
   onLoginSuccess,
-  initialView = "login",
+  onChangePasswordSuccess,
+  initialView = VIEWS.LOGIN,
 }) {
-  const [view, setView] = useState(initialView); // "login" | "register" | "forgot" | "changePassword"
+  const [view, setView] = useState(initialView);
 
-  // Hàm đóng modal (không báo hiệu login thành công)
   const handleClose = useCallback(() => {
     onClose?.();
   }, [onClose]);
 
-  // Hàm xử lý khi login thành công
   const handleLoginSuccess = useCallback(() => {
     onLoginSuccess?.();
   }, [onLoginSuccess]);
 
-  // Hàm xử lý khi đổi mật khẩu thành công (đăng xuất user)
   const handleChangePasswordSuccess = useCallback(() => {
-    // Đổi mật khẩu thành công -> đăng xuất và chuyển về login
+    onChangePasswordSuccess?.();
     handleClose();
-  }, [handleClose]);
+  }, [onChangePasswordSuccess, handleClose]);
 
-  // đóng bằng phím ESC
-  const onKey = useCallback(
-    (e) => {
-      if (e.key === "Escape") {
+  const onKeyDown = useCallback(
+    (event) => {
+      if (event.key === "Escape") {
         handleClose();
       }
     },
@@ -102,13 +43,20 @@ export default function AuthModal({
   );
 
   useEffect(() => {
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onKey]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onKeyDown]);
+
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
 
   return (
     <div className="authModal__backdrop" onClick={handleClose}>
-      <div className="authModal__panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="authModal__panel"
+        onClick={(event) => event.stopPropagation()}
+      >
         <button
           className="authModal__close"
           onClick={handleClose}
@@ -117,23 +65,25 @@ export default function AuthModal({
           ✕
         </button>
 
-        {view === "login" && (
+        {view === VIEWS.LOGIN && (
           <LoginForm
             onDone={handleLoginSuccess}
-            goRegister={() => setView("register")}
-            goForgot={() => setView("forgot")}
+            goRegister={() => setView(VIEWS.REGISTER)}
+            goForgot={() => setView(VIEWS.FORGOT)}
           />
         )}
 
-        {view === "register" && (
-          <RegisterForm goLogin={() => setView("login")} />
+        {view === VIEWS.REGISTER && (
+          <RegisterForm goLogin={() => setView(VIEWS.LOGIN)} />
         )}
 
-        {view === "forgot" && <ForgotForm goLogin={() => setView("login")} />}
+        {view === VIEWS.FORGOT && (
+          <ForgotForm goLogin={() => setView(VIEWS.LOGIN)} />
+        )}
 
-        {view === "changePassword" && (
+        {view === VIEWS.CHANGE_PASSWORD && (
           <ChangePasswordForm
-            goLogin={() => setView("login")}
+            goLogin={() => setView(VIEWS.LOGIN)}
             onSuccess={handleChangePasswordSuccess}
           />
         )}

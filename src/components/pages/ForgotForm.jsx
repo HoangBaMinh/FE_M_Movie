@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { styles } from "./authStyles";
-// đi lên 2 cấp: components/pages -> src -> services
 import {
   requestReset,
   resetWithOtp as resetWithOtpApi,
@@ -63,7 +62,7 @@ export default function ForgotForm({ goLogin }) {
       {msg && <div style={styles.info}>{msg}</div>}
 
       {step === 1 && (
-        <form onSubmit={requestOtp} style={{ display: "grid", gap: 8 }}>
+        <form onSubmit={requestOtp} style={styles.formStack}>
           <label style={styles.label}>Email</label>
           <input
             style={styles.input}
@@ -80,7 +79,7 @@ export default function ForgotForm({ goLogin }) {
       )}
 
       {step === 2 && (
-        <form onSubmit={resetWithOtp} style={{ display: "grid", gap: 8 }}>
+        <form onSubmit={resetWithOtp} style={styles.formStack}>
           <div style={styles.noteBox}>
             Nhập OTP đã gửi tới email: <b>{email}</b>
           </div>
@@ -120,7 +119,7 @@ export default function ForgotForm({ goLogin }) {
         </form>
       )}
 
-      <div style={{ textAlign: "center", marginTop: 10 }}>
+      <div style={styles.centeredRowTight}>
         <button type="button" onClick={goLogin} style={styles.linkBtn}>
           Quay về đăng nhập
         </button>

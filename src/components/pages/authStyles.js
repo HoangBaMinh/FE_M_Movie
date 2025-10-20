@@ -38,9 +38,10 @@ export const styles = {
     padding: "10px 14px",
     border: "none",
     borderRadius: 10,
-    background:
-      "linear-gradient(180deg, rgba(120,86,255,1) 0%, rgba(83,63,205,1) 100%)",
-    color: "white",
+    backgroundColor: "#2563eb",
+    backgroundImage:
+      "linear-gradient(180deg, rgba(59,130,246,1) 0%, rgba(37,99,235,1) 100%)",
+    color: "#fff",
     fontWeight: 600,
     cursor: "pointer",
     transition: "transform .06s ease, opacity .2s ease",
@@ -73,6 +74,51 @@ export const styles = {
     border: "1px solid #1f3a5c",
     marginBottom: 6,
     fontSize: 14,
+  },
+
+  infoSuccess: {
+    padding: "8px 10px",
+    borderRadius: 8,
+    background: "#123524",
+    color: "#bff2ce",
+    border: "1px solid #1f7a4d",
+    marginBottom: 6,
+    fontSize: 14,
+  },
+
+  infoError: {
+    padding: "8px 10px",
+    borderRadius: 8,
+    background: "#2a1111",
+    color: "#ffb4b4",
+    border: "1px solid #7a1f1f",
+    marginBottom: 6,
+    fontSize: 14,
+  },
+
+  formTitle: {
+    margin: 0,
+    textAlign: "center",
+    color: "#fff",
+  },
+
+  formActions: {
+    textAlign: "center",
+    marginTop: 12,
+  },
+
+  centeredRow: {
+    textAlign: "center",
+  },
+
+  centeredRowTight: {
+    textAlign: "center",
+    marginTop: 10,
+  },
+
+  formStack: {
+    display: "grid",
+    gap: 8,
   },
 
   // Hộp ghi chú (Forgot OTP)

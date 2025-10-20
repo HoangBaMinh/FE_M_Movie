@@ -54,7 +54,7 @@ export default function LoginForm({ onDone, goRegister, goForgot }) {
   return (
     <form onSubmit={onSubmit} style={styles.form}>
       {msg && <div style={styles.info}>{msg}</div>}
-      {error && <div style={{ ...styles.info, color: "red" }}>{error}</div>}
+      {error && <div style={styles.infoError}>{error}</div>}
 
       <label style={styles.label}>Email</label>
       <input
