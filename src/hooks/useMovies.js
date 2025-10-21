@@ -3,6 +3,7 @@ import {
   getMovies,
   getMoviesByCategory,
   getMoviesByCountry,
+  getMoviesByCinema,
   searchMoviesByName,
   getMoviesFiltered,
   getMoviesPaged,
@@ -58,22 +59,14 @@ function reducer(state, action) {
   }
 }
 
-/**
- * Params:
- * - categoryId: number | null
- * - countryId : number | null
- * - query     : string (đã debounce ngoài component)
- * - pageNumber: number (mặc định 1)
- * - pageSize  : number (mặc định 12)
- * - usePagination: boolean (true = dùng API phân trang, false = load all như cũ)
- */
 export function useMovies({
   categoryId,
   countryId,
+  cinemaId,
   query,
   pageNumber = 1,
   pageSize = 12,
-  usePagination = false, // Thêm flag này
+  usePagination = false,
 }) {
   const [state, dispatch] = useReducer(reducer, initial);
   const abortRef = useRef(null);
@@ -127,7 +120,7 @@ export function useMovies({
         // 1) Ưu tiên gọi endpoint tổng hợp
         try {
           const data = await getMoviesFiltered(
-            { categoryId, countryId, q },
+            { categoryId, countryId, cinemaId, q },
             { signal: controller.signal }
           );
           if (controller.signal.aborted) return;
@@ -170,8 +163,11 @@ export function useMovies({
           if (countryId != null) {
             data = data.filter((m) => m.countryId === countryId);
           }
+          if (cinemaId != null) {
+            data = data.filter((m) => m.cinemaId === cinemaId);
+          }
         } else {
-          if (categoryId != null && countryId != null) {
+          if (categoryId != null && countryId != null && cinemaId != null) {
             const byCountry = await getMoviesByCountry(countryId, {
               signal: controller.signal,
             });
@@ -186,6 +182,10 @@ export function useMovies({
             });
           } else if (categoryId != null) {
             data = await getMoviesByCategory(categoryId, {
+              signal: controller.signal,
+            });
+          } else if (cinemaId != null) {
+            data = await getMoviesByCinema(cinemaId, {
               signal: controller.signal,
             });
           } else {
@@ -208,7 +208,15 @@ export function useMovies({
 
     run();
     return () => controller.abort();
-  }, [categoryId, countryId, query, pageNumber, pageSize, usePagination]);
+  }, [
+    categoryId,
+    countryId,
+    cinemaId,
+    query,
+    pageNumber,
+    pageSize,
+    usePagination,
+  ]);
 
   return state; // { data, loading, error, totalCount, pageNumber, ... }
 }
