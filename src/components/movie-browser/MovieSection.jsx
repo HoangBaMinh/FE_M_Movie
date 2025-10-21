@@ -3,7 +3,7 @@ import Pagination from "./Pagination";
 
 export default function MovieSection({
   title,
-  totalCount,
+  // totalCount,
   currentPage,
   totalPages,
   loading,
@@ -17,12 +17,12 @@ export default function MovieSection({
     <div className="movie-section">
       <div className="section-header">
         <h2 className="section-title">{title}</h2>
-        {totalCount > 0 && (
+        {/* {totalCount > 0 && (
           <div className="result-info">
             Tìm thấy <strong>{totalCount}</strong> phim | Trang {currentPage}/
             {totalPages}
           </div>
-        )}
+        )} */}
       </div>
 
       {loading ? (

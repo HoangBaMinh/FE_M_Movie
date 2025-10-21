@@ -7,7 +7,7 @@ export default function HeaderBar({
   onLogin,
   onLogout,
   onChangePassword,
-  onBookmark,
+  onOrders,
   isLoggedIn,
 }) {
   return (
@@ -46,8 +46,8 @@ export default function HeaderBar({
           </button>
         )}
 
-        <button className="topbar__link" onClick={onBookmark}>
-          Bookmark
+        <button className="topbar__link" onClick={onOrders}>
+          Đơn hàng
         </button>
       </div>
     </div>

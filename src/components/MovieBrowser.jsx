@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useDebounce from "../hooks/useDebounce";
 import { useCategories } from "../hooks/useCategories";
 import { useCountries } from "../hooks/useCountries";
@@ -19,7 +19,8 @@ import {
   searchMoviesByName,
 } from "../services/movieService";
 import "../css/MovieBrowser.css";
-
+import OrdersModal from "./OrdersModal";
+import { getMyOrders } from "../services/orderService";
 export default function MovieBrowser() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeCountry, setActiveCountry] = useState(null);
@@ -29,7 +30,10 @@ export default function MovieBrowser() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalView, setAuthModalView] = useState("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
   const [movies, setMovies] = useState([]);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [moviesError, setMoviesError] = useState("");
@@ -39,6 +43,7 @@ export default function MovieBrowser() {
   const [hasNextPage, setHasNextPage] = useState(false);
 
   const fetchAbortRef = useRef(null);
+  const ordersAbortRef = useRef(null);
 
   const debouncedQuery = useDebounce(query, 300);
 
@@ -348,6 +353,83 @@ export default function MovieBrowser() {
     }
   };
 
+  const loadOrders = useCallback(async () => {
+    ordersAbortRef.current?.abort?.();
+    const controller = new AbortController();
+    ordersAbortRef.current = controller;
+
+    setLoadingOrders(true);
+    setOrdersError("");
+
+    try {
+      const data = await getMyOrders({ signal: controller.signal });
+      if (controller.signal.aborted) return;
+
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
+      setOrders(list);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Không tải được danh sách đơn hàng.";
+      setOrdersError(message);
+      setOrders([]);
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoadingOrders(false);
+      }
+      ordersAbortRef.current = null;
+    }
+  }, []);
+
+  const handleOrdersClick = useCallback(() => {
+    if (!isLoggedIn) {
+      alert("Bạn cần đăng nhập để sử dụng tính năng Đơn hàng.");
+      openAuthModal("login");
+      return;
+    }
+
+    setShowOrdersModal(true);
+  }, [isLoggedIn]);
+
+  const handleCloseOrders = useCallback(() => {
+    setShowOrdersModal(false);
+    ordersAbortRef.current?.abort?.();
+    ordersAbortRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!showOrdersModal || !isLoggedIn) {
+      return;
+    }
+
+    loadOrders();
+
+    return () => {
+      ordersAbortRef.current?.abort?.();
+      ordersAbortRef.current = null;
+    };
+  }, [showOrdersModal, isLoggedIn, loadOrders]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setShowOrdersModal(false);
+      setOrders([]);
+      ordersAbortRef.current?.abort?.();
+      ordersAbortRef.current = null;
+    }
+  }, [isLoggedIn]);
+
   const emptyMessage = hasActiveSearch
     ? `Không tìm thấy phim nào với từ khóa "${debouncedQuery}"`
     : activeCategory || activeCountry
@@ -362,7 +444,7 @@ export default function MovieBrowser() {
         onLogin={() => openAuthModal("login")}
         onLogout={handleLogout}
         onChangePassword={() => openAuthModal("changePassword")}
-        onBookmark={() => console.log("open bookmarks")}
+        onOrders={handleOrdersClick}
         isLoggedIn={isLoggedIn}
       />
 
@@ -402,6 +484,16 @@ export default function MovieBrowser() {
           emptyMessage={emptyMessage}
         />
       </main>
+      {showOrdersModal && (
+        <OrdersModal
+          onClose={handleCloseOrders}
+          onReload={loadOrders}
+          orders={orders}
+          loading={loadingOrders}
+          error={ordersError}
+          isLoggedIn={isLoggedIn}
+        />
+      )}
 
       {showAuthModal && (
         <AuthModal

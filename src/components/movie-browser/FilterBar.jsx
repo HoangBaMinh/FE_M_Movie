@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const STATIC_LINKS = ["PHIM SẮP CHIẾU", "TOP PHIM "];
+const STATIC_LINKS = ["PHIM CHIẾU", "TOP PHIM "];
 
 export default function FilterBar({
   categories = [],
