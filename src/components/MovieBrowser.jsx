@@ -8,11 +8,14 @@ import HeaderBar from "./HeaderBar";
 import AuthModal from "./AuthModal";
 import FilterBar from "./movie-browser/FilterBar";
 import MovieSection from "./movie-browser/MovieSection";
+import ShowcaseCarousel from "./movie-browser/ShowcaseCarousel";
 import ChatWidget from "./ChatWidget";
 import { logout as logoutApi } from "../services/authService";
 import { getAccessToken, logout as clearTokens } from "../api/http";
 import {
   getMovies,
+  getComingSoonMovies,
+  getNowShowingMovies,
   getMoviesByCategory,
   getMoviesByCinema,
   getMoviesByCountry,
@@ -41,6 +44,11 @@ export default function MovieBrowser() {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
   const fetchAbortRef = useRef(null);
+  const showcasesAbortRef = useRef(null);
+  const [nowShowing, setNowShowing] = useState([]);
+  const [comingSoon, setComingSoon] = useState([]);
+  const [loadingShowcases, setLoadingShowcases] = useState(true);
+  const [showcaseError, setShowcaseError] = useState("");
 
   const debouncedQuery = useDebounce(query, 300);
   const {
@@ -73,10 +81,68 @@ export default function MovieBrowser() {
   const error =
     categoriesError || countriesError || moviesError || cinemasError;
 
+  const loadShowcases = useCallback(() => {
+    showcasesAbortRef.current?.abort?.();
+    const controller = new AbortController();
+    showcasesAbortRef.current = controller;
+
+    const normalizeMovies = (items) => {
+      const safe = Array.isArray(items) ? items.filter(Boolean) : [];
+      return safe
+        .slice()
+        .sort((a, b) => {
+          const nameA = (a?.name || a?.title || "").toString().trim();
+          const nameB = (b?.name || b?.title || "").toString().trim();
+          return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
+        })
+        .slice(0, 12);
+    };
+
+    setLoadingShowcases(true);
+    setShowcaseError("");
+
+    const run = async () => {
+      try {
+        const [nowShowingData, comingSoonData] = await Promise.all([
+          getNowShowingMovies({ signal: controller.signal }),
+          getComingSoonMovies({ signal: controller.signal }),
+        ]);
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setNowShowing(normalizeMovies(nowShowingData));
+        setComingSoon(normalizeMovies(comingSoonData));
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        console.error("Load showcase movies error:", err);
+        setShowcaseError("Không tải được phim nổi bật. Vui lòng thử lại.");
+        setNowShowing([]);
+        setComingSoon([]);
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingShowcases(false);
+        }
+      }
+    };
+    run();
+  }, []);
+
   useEffect(() => {
     const token = getAccessToken();
     setIsLoggedIn(Boolean(token));
   }, []);
+
+  useEffect(() => {
+    loadShowcases();
+
+    return () => {
+      showcasesAbortRef.current?.abort?.();
+    };
+  }, [loadShowcases]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -453,6 +519,28 @@ export default function MovieBrowser() {
       />
 
       <main className="main-content">
+        <div className="showcase-row">
+          <ShowcaseCarousel
+            title="Phim đang chiếu"
+            subtitle="Thưởng thức những suất chiếu nổi bật tại rạp."
+            movies={nowShowing}
+            loading={loadingShowcases}
+            error={showcaseError}
+            onRetry={loadShowcases}
+            theme="dark"
+          />
+
+          <ShowcaseCarousel
+            title="Phim sắp chiếu"
+            subtitle="Đặt lịch ngay để không bỏ lỡ ngày ra mắt."
+            movies={comingSoon}
+            loading={loadingShowcases}
+            error={showcaseError}
+            onRetry={loadShowcases}
+            theme="light"
+          />
+        </div>
+
         {error && <div className="error-message">{String(error)}</div>}
 
         <MovieSection

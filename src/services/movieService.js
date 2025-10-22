@@ -14,6 +14,20 @@ export async function getMoviesByCategory(categoryId, opts = {}) {
   return res.data;
 }
 
+export async function getNowShowingMovies(opts = {}) {
+  const res = await http.get("/Movie/now-showing", {
+    signal: opts.signal,
+  });
+  return res.data;
+}
+
+export async function getComingSoonMovies(opts = {}) {
+  const res = await http.get("/Movie/coming-soon", {
+    signal: opts.signal,
+  });
+  return res.data;
+}
+
 export async function getMoviesByCountry(countryId, opts = {}) {
   const res = await http.get(`/Movie/by-country/${countryId}`, {
     signal: opts.signal,
