@@ -14,7 +14,9 @@ const ORDER_ENDPOINTS = [
   "/Order",
 ];
 
-function normalizeResponse(data) {
+const LAST_ORDER_ENDPOINT = ORDER_ENDPOINTS[ORDER_ENDPOINTS.length - 1];
+
+export function extractOrdersList(data) {
   if (!data) return [];
 
   if (Array.isArray(data)) return data;
@@ -41,7 +43,7 @@ export async function getMyOrders(opts = {}) {
   for (const endpoint of ORDER_ENDPOINTS) {
     try {
       const response = await http.get(endpoint, { signal: opts.signal });
-      const normalized = normalizeResponse(response?.data);
+      const normalized = extractOrdersList(response?.data);
 
       if (
         !normalized.length &&
@@ -56,7 +58,7 @@ export async function getMyOrders(opts = {}) {
       }
 
       // Nếu endpoint trả về object mà không có mảng, nhưng là endpoint cuối -> trả object.
-      if (endpoint === ORDER_ENDPOINTS[ORDER_ENDPOINTS.length - 1]) {
+      if (endpoint === LAST_ORDER_ENDPOINT) {
         return response?.data ?? [];
       }
     } catch (error) {

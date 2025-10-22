@@ -3,10 +3,12 @@ import useDebounce from "../hooks/useDebounce";
 import { useCategories } from "../hooks/useCategories";
 import { useCountries } from "../hooks/useCountries";
 import { useCinemas } from "../hooks/useCinemas";
+import { useOrders } from "../hooks/useOrders";
 import HeaderBar from "./HeaderBar";
 import AuthModal from "./AuthModal";
 import FilterBar from "./movie-browser/FilterBar";
 import MovieSection from "./movie-browser/MovieSection";
+import ChatWidget from "./ChatWidget";
 import { logout as logoutApi } from "../services/authService";
 import { getAccessToken, logout as clearTokens } from "../api/http";
 import {
@@ -20,7 +22,6 @@ import {
 } from "../services/movieService";
 import "../css/MovieBrowser.css";
 import OrdersModal from "./OrdersModal";
-import { getMyOrders } from "../services/orderService";
 export default function MovieBrowser() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeCountry, setActiveCountry] = useState(null);
@@ -31,9 +32,6 @@ export default function MovieBrowser() {
   const [authModalView, setAuthModalView] = useState("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
-  const [orders, setOrders] = useState([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
-  const [ordersError, setOrdersError] = useState("");
   const [movies, setMovies] = useState([]);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [moviesError, setMoviesError] = useState("");
@@ -41,11 +39,18 @@ export default function MovieBrowser() {
   const [totalPages, setTotalPages] = useState(0);
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
-
+  const [showChatWidget, setShowChatWidget] = useState(false);
   const fetchAbortRef = useRef(null);
-  const ordersAbortRef = useRef(null);
 
   const debouncedQuery = useDebounce(query, 300);
+  const {
+    orders,
+    loading: loadingOrders,
+    error: ordersError,
+    fetchOrders,
+    cancel: cancelOrders,
+    reset: resetOrders,
+  } = useOrders({ enabled: isLoggedIn });
 
   const {
     data: categories = [],
@@ -250,7 +255,7 @@ export default function MovieBrowser() {
             signal: controller.signal,
           });
         } else if (activeCinema != null) {
-          data = await getMoviesByCinema(activeCategory, {
+          data = await getMoviesByCinema(activeCinema, {
             signal: controller.signal,
           });
         } else {
@@ -316,10 +321,10 @@ export default function MovieBrowser() {
     }
   };
 
-  const openAuthModal = (view = "login") => {
+  const openAuthModal = useCallback((view = "login") => {
     setAuthModalView(view);
     setShowAuthModal(true);
-  };
+  }, []);
 
   const handleLoginSuccess = () => {
     setShowAuthModal(false);
@@ -345,6 +350,7 @@ export default function MovieBrowser() {
       await logoutApi();
       clearTokens();
       setIsLoggedIn(false);
+      setShowChatWidget(false);
       alert("Đăng xuất thành công!");
     } catch (error) {
       console.error("Logout error:", error);
@@ -352,45 +358,6 @@ export default function MovieBrowser() {
       setIsLoggedIn(false);
     }
   };
-
-  const loadOrders = useCallback(async () => {
-    ordersAbortRef.current?.abort?.();
-    const controller = new AbortController();
-    ordersAbortRef.current = controller;
-
-    setLoadingOrders(true);
-    setOrdersError("");
-
-    try {
-      const data = await getMyOrders({ signal: controller.signal });
-      if (controller.signal.aborted) return;
-
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.items)
-        ? data.items
-        : Array.isArray(data?.data)
-        ? data.data
-        : [];
-
-      setOrders(list);
-    } catch (error) {
-      if (controller.signal.aborted) return;
-
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.detail ||
-        error?.message ||
-        "Không tải được danh sách đơn hàng.";
-      setOrdersError(message);
-      setOrders([]);
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoadingOrders(false);
-      }
-      ordersAbortRef.current = null;
-    }
-  }, []);
 
   const handleOrdersClick = useCallback(() => {
     if (!isLoggedIn) {
@@ -400,35 +367,51 @@ export default function MovieBrowser() {
     }
 
     setShowOrdersModal(true);
-  }, [isLoggedIn]);
+  }, [isLoggedIn, openAuthModal]);
 
+  const handleChatClick = useCallback(() => {
+    if (!isLoggedIn) {
+      alert("Bạn cần đăng nhập để trò chuyện với trợ lý AI.");
+      openAuthModal("login");
+      return;
+    }
+
+    setShowOrdersModal(false);
+    setShowChatWidget(true);
+  }, [isLoggedIn, openAuthModal]);
+
+  const handleCloseChat = useCallback(() => {
+    setShowChatWidget(false);
+  }, []);
   const handleCloseOrders = useCallback(() => {
     setShowOrdersModal(false);
-    ordersAbortRef.current?.abort?.();
-    ordersAbortRef.current = null;
-  }, []);
+    cancelOrders();
+  }, [cancelOrders]);
 
   useEffect(() => {
     if (!showOrdersModal || !isLoggedIn) {
       return;
     }
 
-    loadOrders();
+    fetchOrders();
 
     return () => {
-      ordersAbortRef.current?.abort?.();
-      ordersAbortRef.current = null;
+      cancelOrders();
     };
-  }, [showOrdersModal, isLoggedIn, loadOrders]);
+  }, [showOrdersModal, isLoggedIn, fetchOrders, cancelOrders]);
 
   useEffect(() => {
     if (!isLoggedIn) {
       setShowOrdersModal(false);
-      setOrders([]);
-      ordersAbortRef.current?.abort?.();
-      ordersAbortRef.current = null;
+      resetOrders();
+      setShowChatWidget(false);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, resetOrders]);
+
+  const handleReloadOrders = useCallback(() => {
+    if (!isLoggedIn) return;
+    fetchOrders();
+  }, [isLoggedIn, fetchOrders]);
 
   const emptyMessage = hasActiveSearch
     ? `Không tìm thấy phim nào với từ khóa "${debouncedQuery}"`
@@ -445,6 +428,7 @@ export default function MovieBrowser() {
         onLogout={handleLogout}
         onChangePassword={() => openAuthModal("changePassword")}
         onOrders={handleOrdersClick}
+        onChat={handleChatClick}
         isLoggedIn={isLoggedIn}
       />
 
@@ -487,7 +471,7 @@ export default function MovieBrowser() {
       {showOrdersModal && (
         <OrdersModal
           onClose={handleCloseOrders}
-          onReload={loadOrders}
+          onReload={handleReloadOrders}
           orders={orders}
           loading={loadingOrders}
           error={ordersError}
@@ -501,6 +485,13 @@ export default function MovieBrowser() {
           onLoginSuccess={handleLoginSuccess}
           onChangePasswordSuccess={handleChangePasswordSuccess}
           initialView={authModalView}
+        />
+      )}
+      {showChatWidget && (
+        <ChatWidget
+          isOpen={showChatWidget}
+          onClose={handleCloseChat}
+          isLoggedIn={isLoggedIn}
         />
       )}
     </div>

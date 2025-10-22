@@ -8,6 +8,7 @@ export default function HeaderBar({
   onLogout,
   onChangePassword,
   onOrders,
+  onChat,
   isLoggedIn,
 }) {
   return (
@@ -48,6 +49,9 @@ export default function HeaderBar({
 
         <button className="topbar__link" onClick={onOrders}>
           Đơn hàng
+        </button>
+        <button className="topbar__link topbar__link--chat" onClick={onChat}>
+          Chat AI
         </button>
       </div>
     </div>

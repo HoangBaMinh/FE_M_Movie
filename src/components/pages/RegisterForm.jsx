@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { styles } from "./authStyles";
 import { register as registerAccount } from "../../services/authService";
 
@@ -8,6 +8,15 @@ export default function RegisterForm({ goLogin }) {
   const [confirm, setConfirm] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const redirectTimeoutRef = useRef();
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -20,7 +29,11 @@ export default function RegisterForm({ goLogin }) {
       setLoading(true);
       // authService.register trả về res.data
       const data = await registerAccount(email, pwd, confirm);
-      setMsg(data?.message || "Đăng ký thành công!");
+      const successMessage = data?.message || "Đăng ký thành công!";
+      setMsg(`${successMessage} Đang chuyển đến đăng nhập...`);
+      redirectTimeoutRef.current = setTimeout(() => {
+        goLogin?.();
+      }, 1500);
     } catch (ex) {
       setMsg(
         ex.response?.data?.message ||
