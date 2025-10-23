@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const STATIC_LINKS = ["PHIM CHIẾU", "TOP PHIM "];
+const STATIC_LINKS = ["TOP PHIM ", "TIN TỨC"];
 
 export default function FilterBar({
   categories = [],
@@ -71,7 +71,7 @@ export default function FilterBar({
               onReset?.();
             }}
           >
-            TRANG CHỦ
+            PHIM CHIẾU
           </button>
 
           <div className="nav-dropdown" onMouseLeave={closeMenus}>
@@ -105,12 +105,6 @@ export default function FilterBar({
               </div>
             )}
           </div>
-
-          {STATIC_LINKS.map((label) => (
-            <button key={label} type="button" className="nav-item">
-              {label}
-            </button>
-          ))}
 
           <div className="nav-dropdown" onMouseLeave={closeMenus}>
             <button type="button" className="nav-item" onClick={toggleCategory}>
@@ -174,6 +168,11 @@ export default function FilterBar({
               </div>
             )}
           </div>
+          {STATIC_LINKS.map((label) => (
+            <button key={label} type="button" className="nav-item">
+              {label}
+            </button>
+          ))}
         </nav>
       </div>
     </header>
