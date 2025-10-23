@@ -4,43 +4,21 @@ const FALLBACK_POSTER =
   "linear-gradient(135deg, rgba(34, 34, 34, 0.8), rgba(80, 80, 80, 0.8))";
 
 function pickPoster(movie = {}) {
-  return (
-    movie.posterUrl ||
-    movie.poster ||
-    movie.imageUrl ||
-    movie.image ||
-    movie.thumbnail ||
-    movie.bannerUrl ||
-    movie.coverUrl ||
-    null
-  );
+  return movie.posterUrl || null;
 }
 
 function pickDescription(movie = {}) {
-  const text =
-    movie.shortDescription ||
-    movie.description ||
-    movie.synopsis ||
-    movie.overview ||
-    "";
+  const text = movie.description || "";
   if (!text) return "";
   return text.length > 140 ? `${text.slice(0, 140)}…` : text;
 }
 
 function pickDuration(movie = {}) {
-  return (
-    movie.duration || movie.runningTime || movie.runtime || movie.time || null
-  );
+  return movie.duration || null;
 }
 
 function pickRating(movie = {}) {
-  const rating =
-    movie.averageRating ||
-    movie.rating ||
-    movie.voteAverage ||
-    movie.score ||
-    movie.imdbRating ||
-    null;
+  const rating = movie.averageRating || null;
   if (rating == null || Number.isNaN(Number(rating))) return null;
   const numeric = Number(rating);
   if (!Number.isFinite(numeric)) return null;
@@ -48,16 +26,7 @@ function pickRating(movie = {}) {
 }
 
 function pickDate(movie = {}) {
-  const dateValue =
-    movie.releaseDate ||
-    movie.premiereDate ||
-    movie.openingDate ||
-    movie.startDate ||
-    movie.showDate ||
-    movie.showingDate ||
-    movie.comingDate ||
-    movie.publishDate ||
-    null;
+  const dateValue = movie.releaseDate || null;
 
   if (!dateValue) return null;
 
