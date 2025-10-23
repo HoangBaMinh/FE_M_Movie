@@ -251,9 +251,11 @@ body {
 
 .showcase-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 20px;
-  align-items: flex-start;
+  text-align: center;
 }
 
 .showcase-header-text {
@@ -265,20 +267,19 @@ body {
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  margin: 0;
 }
 
 .showcase-dark .showcase-title {
   color: #fcd26a;
-  margin-left: 440px;
 }
 
 .showcase-light .showcase-title {
+  margin: 6px auto 0;
   color: #d6336c;
-  margin-left: 440px;
 }
 
 .showcase-subtitle {
-  margin-left: 440px;
   margin-top: 6px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.75);
@@ -292,7 +293,7 @@ body {
 .showcase-controls {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   min-height: 32px;
 }
 
@@ -631,14 +632,11 @@ body {
   }
 
   .showcase-header {
-    flex-direction: column;
-    align-items: flex-start;
     gap: 16px;
   }
 
   .showcase-controls {
-    align-self: stretch;
-    justify-content: flex-end;
+    align-self: center;
   }
 
   .showcase-grid {
@@ -746,7 +744,6 @@ body {
   border-left: 4px solid #e74c3c;
   font-weight: 700;
   letter-spacing: 1px;
-  
 }
 
 /* Movies grid */
