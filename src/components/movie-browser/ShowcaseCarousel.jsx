@@ -7,18 +7,8 @@ function pickPoster(movie = {}) {
   return movie.posterUrl || null;
 }
 
-function pickDescription(movie = {}) {
-  const text = movie.description || "";
-  if (!text) return "";
-  return text.length > 140 ? `${text.slice(0, 140)}…` : text;
-}
-
-function pickDuration(movie = {}) {
-  return movie.duration || null;
-}
-
 function pickRating(movie = {}) {
-  const rating = movie.averageRating || null;
+  const rating = movie.averageRating || 5;
   if (rating == null || Number.isNaN(Number(rating))) return null;
   const numeric = Number(rating);
   if (!Number.isFinite(numeric)) return null;
@@ -49,7 +39,12 @@ function pickCategories(movie = {}) {
 
   if (Array.isArray(movie.categories) && movie.categories.length) {
     return movie.categories
-      .map((item) => (typeof item === "string" ? item : item?.name))
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : item?.categoryName ?? item?.CategoryName ?? item?.name
+      )
+
       .filter(Boolean)
       .join(", ");
   }
@@ -175,8 +170,6 @@ export default function ShowcaseCarousel({
           <div className="showcase-grid">
             {visibleMovies.map((movie) => {
               const poster = pickPoster(movie);
-              const description = pickDescription(movie);
-              const duration = pickDuration(movie);
               const rating = pickRating(movie);
               const dateParts = pickDate(movie);
               const categories = pickCategories(movie);
@@ -216,23 +209,18 @@ export default function ShowcaseCarousel({
                             {movie.ageRating}
                           </span>
                         )}
-                        {categories && (
-                          <span className="showcase-badge">{categories}</span>
-                        )}
                       </div>
                     </div>
 
                     <h3 className="showcase-card-title">
                       {movie.name || movie.title}
                     </h3>
-                    {description && (
-                      <p className="showcase-card-description">{description}</p>
+
+                    {categories && (
+                      <span className="showcase-badge">{categories}</span>
                     )}
 
                     <div className="showcase-card-footer">
-                      {duration && (
-                        <span className="showcase-meta">⏱ {duration} phút</span>
-                      )}
                       {rating && (
                         <span className="showcase-meta">⭐ {rating}</span>
                       )}
