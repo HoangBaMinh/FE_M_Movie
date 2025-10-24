@@ -1,4 +1,5 @@
-const POSTER_FIELDS = ["posterUrl"]
+const POSTER_FIELDS = ["posterUrl"];
+import { Link } from "react-router-dom";
 
 function pickPoster(movie = {}) {
   for (const field of POSTER_FIELDS) {
@@ -26,20 +27,46 @@ function pickPoster(movie = {}) {
   return null;
 }
 
+const MAX_CATS = 3;
+
+function pickCategoryNames(movie = {}, max = MAX_CATS) {
+  const list = Array.isArray(movie.categories) ? movie.categories : [];
+
+  // Sắp xếp: Primary trước, rồi theo displayOrder, rồi theo tên
+  const sorted = [...list].sort((a, b) => {
+    const pri = (b?.isPrimary === true) - (a?.isPrimary === true); // true trước
+    if (pri !== 0) return pri;
+
+    const ao = (a?.displayOrder ?? 0) - (b?.displayOrder ?? 0);
+    if (ao !== 0) return ao;
+
+    return (a?.categoryName ?? "").localeCompare(b?.categoryName ?? "");
+  });
+
+  const names = sorted
+    .map((x) => x?.categoryName)
+    .filter((x) => typeof x === "string" && x.trim());
+
+  const visible = names.slice(0, max);
+  const restCount = Math.max(0, names.length - visible.length);
+
+  return { visible, restCount };
+}
+
 export default function MovieGrid({ movies = [] }) {
-  if (!movies.length) {
-    return null;
-  }
+  if (!movies.length) return null;
 
   return (
     <div className="movies-grid">
       {movies.map((movie = {}) => {
         const poster = pickPoster(movie);
-        const cardKey = movie.id || movie.movieId || movie.name;
-        const duration = movie.duration || movie.length || movie.runtime;
+        const cardKey = movie.id;
+        const duration = movie.duration;
 
-        return (
-          <div key={cardKey} className="movie-card">
+        const { visible: cats, restCount } = pickCategoryNames(movie);
+
+        const cardBody = (
+          <>
             <div className={`movie-poster ${poster ? "has-image" : ""}`.trim()}>
               {poster ? (
                 <img
@@ -52,12 +79,45 @@ export default function MovieGrid({ movies = [] }) {
                 <div className="quality-badge">{movie.ageRating}</div>
               ) : null}
             </div>
+
             <div className="movie-info">
               <h4>{movie.name}</h4>
+
+              {/* Category chips */}
+              {cats.length ? (
+                <div className="movie-categories">
+                  {cats.map((name) => (
+                    <span key={name} className="cat-chip">
+                      {name}
+                    </span>
+                  ))}
+                  {restCount > 0 ? (
+                    <span className="cat-chip more">+{restCount}</span>
+                  ) : null}
+                </div>
+              ) : null}
+
               {duration ? (
                 <p className="movie-runtime">Thời lượng: {duration} phút</p>
               ) : null}
             </div>
+          </>
+        );
+
+        const detailId = movie.id || movie.movieId;
+        const detailPath = detailId ? `/movies/${detailId}` : null;
+
+        if (detailPath) {
+          return (
+            <Link key={cardKey} to={detailPath} className="movie-card-link">
+              <div className="movie-card">{cardBody}</div>
+            </Link>
+          );
+        }
+
+        return (
+          <div key={cardKey} className="movie-card">
+            {cardBody}
           </div>
         );
       })}

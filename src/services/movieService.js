@@ -7,6 +7,18 @@ export async function getMovies(opts = {}) {
   return res.data;
 }
 
+export async function getMovieById(id, opts = {}) {
+  if (id == null || id === "") {
+    throw new Error("Movie id is required");
+  }
+
+  const res = await http.get(`/Movie/${id}`, {
+    signal: opts.signal,
+  });
+
+  return res.data;
+}
+
 export async function getMoviesByCategory(categoryId, opts = {}) {
   const res = await http.get(`/Movie/by-category/${categoryId}`, {
     signal: opts.signal,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 const FALLBACK_POSTER =
   "linear-gradient(135deg, rgba(34, 34, 34, 0.8), rgba(80, 80, 80, 0.8))";
@@ -178,21 +179,23 @@ export default function ShowcaseCarousel({
                 ? { backgroundImage: `url(${poster})` }
                 : { backgroundImage: FALLBACK_POSTER };
 
-              return (
-                <article
-                  key={movie.id || movie.movieId || movie.name}
-                  className={`showcase-card ${
-                    theme === "light" ? "showcase-card--light" : ""
-                  }`}
-                >
-                  <div
-                    className="showcase-card-bg"
-                    style={style}
-                    aria-hidden="true"
-                  />
-                  <div className="showcase-card-overlay" aria-hidden="true" />
-                  <div className="showcase-card-content">
-                    <div className="showcase-card-top">
+              const cardKey = movie.id;
+              const detailId = movie.id;
+              const detailPath = detailId ? `/movies/${detailId}` : null;
+              const cardClass = `showcase-card ${
+                theme === "light" ? "showcase-card--light" : ""
+              }`;
+
+              const cardChildren = (
+                <>
+                  <div className="showcase-card-visual">
+                    <div
+                      className="showcase-card-bg"
+                      style={style}
+                      aria-hidden="true"
+                    />
+                    <div className="showcase-card-overlay" aria-hidden="true" />
+                    <div className="showcase-card-visual-top">
                       {dateParts && (
                         <div className="showcase-date">
                           <span className="showcase-date-day">
@@ -205,13 +208,19 @@ export default function ShowcaseCarousel({
                       )}
                       <div className="showcase-badges">
                         {movie.ageRating && (
-                          <span className="showcase-badge">
+                          <span className="showcase-badge-rating">
                             {movie.ageRating}
                           </span>
                         )}
                       </div>
                     </div>
 
+                    <div className="showcase-play" aria-hidden="true">
+                      ▶
+                    </div>
+                  </div>
+
+                  <div className="showcase-card-content">
                     <h3 className="showcase-card-title">
                       {movie.name || movie.title}
                     </h3>
@@ -226,16 +235,24 @@ export default function ShowcaseCarousel({
                       )}
                     </div>
                   </div>
+                </>
+              );
 
-                  <button
-                    type="button"
-                    className="showcase-play"
-                    aria-label={`Xem chi tiết phim ${
-                      movie.name || movie.title
-                    }`}
+              if (detailPath) {
+                return (
+                  <Link
+                    key={cardKey}
+                    to={detailPath}
+                    className="showcase-card-link"
                   >
-                    ▶
-                  </button>
+                    <article className={cardClass}>{cardChildren}</article>
+                  </Link>
+                );
+              }
+
+              return (
+                <article key={cardKey} className={cardClass}>
+                  {cardChildren}
                 </article>
               );
             })}

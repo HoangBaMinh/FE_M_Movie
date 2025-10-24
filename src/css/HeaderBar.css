@@ -25,6 +25,10 @@
   margin: 0 auto;
   width: 100%;
 }
+.topbar__search--hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
 .topbar__search input {
   width: 100%;
   padding: 10px 40px 10px 14px;
