@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import logo from "../assets/Images/Logo/Logo_M_Movie.png";
-import "../css/HeaderBar.css";
+import logo from "../../assets/Images/Logo/Logo_M_Movie.png";
+import "../../css/HeaderBar.css";
 
 export default function HeaderBar({
   query,
@@ -34,9 +34,11 @@ export default function HeaderBar({
           </button>
         </div>
       ) : (
-        <div className="topbar__search topbar__search--hidden" aria-hidden="true" />
+        <div
+          className="topbar__search topbar__search--hidden"
+          aria-hidden="true"
+        />
       )}
-
 
       <div className="topbar__actions">
         {isLoggedIn ? (

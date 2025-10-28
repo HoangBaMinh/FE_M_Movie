@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import LoginForm from "./pages/LoginForm";
-import RegisterForm from "./pages/RegisterForm";
-import ForgotForm from "./pages/ForgotForm";
-import ChangePasswordForm from "./pages/ChangePasswordForm";
-import "../css/AuthModal.css";
+import LoginForm from "./LoginForm";
+import RegisterForm from "./RegisterForm";
+import ForgotForm from "./ForgotForm";
+import ChangePasswordForm from "./ChangePasswordForm";
+import "../../css/AuthModal.css";
 
 const VIEWS = {
   LOGIN: "login",

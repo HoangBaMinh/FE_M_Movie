@@ -104,7 +104,7 @@ export default function MovieGrid({ movies = [] }) {
           </>
         );
 
-        const detailSlug = movie.slug || movie.id || movie.movieId;
+        const detailSlug = movie.slug;
         const detailPath = detailSlug ? `/movies/${detailSlug}` : null;
 
         if (detailPath) {

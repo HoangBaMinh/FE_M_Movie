@@ -48,6 +48,16 @@ async function fetchMovieBySlug(slug, opts = {}) {
   throw error;
 }
 
+export async function getMovieBySlug(slug, opts = {}) {
+  const identifier = normalizeIdentifier(slug);
+
+  if (identifier == null) {
+    throw new Error("Movie slug is required");
+  }
+
+  return fetchMovieBySlug(identifier, opts);
+}
+
 export async function getMovieById(idOrSlug, opts = {}) {
   const identifier = normalizeIdentifier(idOrSlug);
 

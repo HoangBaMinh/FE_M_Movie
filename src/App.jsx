@@ -1,8 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
-import MovieBrowser from "./components/MovieBrowser";
-import MovieDetailPage from "./components/movie-browser/MovieDetailPage";
-
+import MovieBrowser from "./components/movie-browser/MovieBrowser";
+import MovieDetailPage from "./components/movie-detail/MovieDetailPage";
 function App() {
   return (
     <Routes>
