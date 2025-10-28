@@ -7,7 +7,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<MovieBrowser />} />
-      <Route path="/movies/:movieId" element={<MovieDetailPage />} />
+      <Route path="/movies/:movieSlug" element={<MovieDetailPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

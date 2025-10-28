@@ -179,9 +179,9 @@ export default function ShowcaseCarousel({
                 ? { backgroundImage: `url(${poster})` }
                 : { backgroundImage: FALLBACK_POSTER };
 
-              const cardKey = movie.id;
-              const detailId = movie.id;
-              const detailPath = detailId ? `/movies/${detailId}` : null;
+              const cardKey = movie.id || movie.slug || movie.movieId;
+              const detailSlug = movie.slug || movie.id || movie.movieId;
+              const detailPath = detailSlug ? `/movies/${detailSlug}` : null;
               const cardClass = `showcase-card ${
                 theme === "light" ? "showcase-card--light" : ""
               }`;

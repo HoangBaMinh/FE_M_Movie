@@ -224,7 +224,10 @@ function extractDirectors(movie = {}) {
       .map((director) =>
         typeof director === "string"
           ? director
-          : director?.name || director?.directorName || director?.fullName || null
+          : director?.name ||
+            director?.directorName ||
+            director?.fullName ||
+            null
       )
       .filter(Boolean);
   }
@@ -287,14 +290,12 @@ function groupShowtimesByCinema(items = []) {
 }
 
 function sortDateKeys(keys = []) {
-  return keys
-    .slice()
-    .sort((a, b) => {
-      const da = parseDate(`${a}T00:00:00`);
-      const db = parseDate(`${b}T00:00:00`);
-      if (!da || !db) return a.localeCompare(b);
-      return da.getTime() - db.getTime();
-    });
+  return keys.slice().sort((a, b) => {
+    const da = parseDate(`${a}T00:00:00`);
+    const db = parseDate(`${b}T00:00:00`);
+    if (!da || !db) return a.localeCompare(b);
+    return da.getTime() - db.getTime();
+  });
 }
 
 function getTrailerLink(movie = {}) {
@@ -308,8 +309,46 @@ function getTrailerLink(movie = {}) {
   return links.find((link) => typeof link === "string" && link.trim()) || "";
 }
 
+function resolveTrailerEmbedUrl(url) {
+  if (typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(trimmed);
+  } catch (error) {
+    return "";
+  }
+
+  const hostname = parsedUrl.hostname.replace(/^www\./i, "");
+  let videoId = "";
+
+  if (hostname === "youtu.be") {
+    videoId = parsedUrl.pathname.split("/").filter(Boolean)[0] || "";
+  } else if (
+    hostname.endsWith("youtube.com") ||
+    hostname.endsWith("youtube-nocookie.com")
+  ) {
+    if (parsedUrl.searchParams.has("v")) {
+      videoId = parsedUrl.searchParams.get("v") || "";
+    } else if (parsedUrl.pathname.startsWith("/embed/")) {
+      videoId = parsedUrl.pathname.split("/")[2] || "";
+    } else if (parsedUrl.pathname.startsWith("/shorts/")) {
+      videoId = parsedUrl.pathname.split("/")[2] || "";
+    }
+  }
+
+  if (!videoId) return "";
+
+  const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
+  embedUrl.searchParams.set("autoplay", "1");
+  embedUrl.searchParams.set("rel", "0");
+  return embedUrl.toString();
+}
+
 export default function MovieDetailPage() {
-  const { movieId } = useParams();
+  const { movieSlug } = useParams();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getAccessToken()));
@@ -334,12 +373,81 @@ export default function MovieDetailPage() {
 
   const [relatedNowShowing, setRelatedNowShowing] = useState([]);
   const [relatedComingSoon, setRelatedComingSoon] = useState([]);
+  const [isTrailerOpen, setTrailerOpen] = useState(false);
+
+  const resolveMovieLink = useCallback((movie) => {
+    if (!movie || typeof movie !== "object") return "/movies";
+
+    const identifier =
+      movie.id || movie.movieId || movie.slug || movie.Slug || movie.movieSlug;
+
+    if (!identifier) return "/movies";
+
+    return `/movies/${identifier}`;
+  }, []);
+
+  const resolvePosterMeta = useCallback((movie) => {
+    const posterUrlCandidate = movie?.posterUrl;
+
+    const posterUrl =
+      typeof posterUrlCandidate === "string"
+        ? posterUrlCandidate.trim()
+        : posterUrlCandidate;
+
+    if (posterUrl) {
+      return {
+        hasImage: true,
+        src: posterUrl,
+      };
+    }
+
+    const label = (movie?.name || movie?.title || "?").toString().trim();
+
+    return {
+      hasImage: false,
+      text: label.slice(0, 1).toUpperCase() || "?",
+    };
+  }, []);
+
+  const routeParam = useMemo(() => {
+    if (!movieSlug) return null;
+    const trimmed = String(movieSlug).trim();
+    return trimmed.length ? trimmed : null;
+  }, [movieSlug]);
+
+  const movieLookupKey = useMemo(() => {
+    if (!routeParam) return null;
+    const numeric = Number(routeParam);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric;
+    }
+    return routeParam;
+  }, [routeParam]);
+
+  const movieInternalId = useMemo(() => {
+    if (!movie) return null;
+    const candidates = [movie.id, movie.movieId, movie.movieID];
+    const found = candidates.find((value) => value != null && value !== "");
+    return found ?? null;
+  }, [movie]);
 
   const movieNumericId = useMemo(() => {
-    if (!movieId) return null;
-    const numeric = Number(movieId);
-    return Number.isFinite(numeric) && numeric > 0 ? numeric : movieId;
-  }, [movieId]);
+    const candidates = [movieInternalId, movieLookupKey];
+
+    for (const candidate of candidates) {
+      if (candidate == null || candidate === "") continue;
+      const numeric = Number(candidate);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return numeric;
+      }
+    }
+
+    if (typeof movieLookupKey === "number") {
+      return movieLookupKey;
+    }
+
+    return null;
+  }, [movieInternalId, movieLookupKey]);
 
   const groupedShowtimes = useMemo(
     () => groupShowtimesByCinema(Array.isArray(showtimes) ? showtimes : []),
@@ -367,19 +475,17 @@ export default function MovieDetailPage() {
     if (!dateGroup) return [];
     return Array.from(dateGroup.values()).map((cinema) => ({
       ...cinema,
-      showtimes: cinema.showtimes
-        .slice()
-        .sort((a, b) => {
-          if (!a.startDate || !b.startDate) return 0;
-          return a.startDate.getTime() - b.startDate.getTime();
-        }),
+      showtimes: cinema.showtimes.slice().sort((a, b) => {
+        if (!a.startDate || !b.startDate) return 0;
+        return a.startDate.getTime() - b.startDate.getTime();
+      }),
     }));
   }, [groupedShowtimes, activeDate]);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    if (!movieNumericId) {
+    if (!movieLookupKey) {
       setMovie(null);
       setMovieError("Không tìm thấy mã phim hợp lệ.");
       setMovieLoading(false);
@@ -389,9 +495,10 @@ export default function MovieDetailPage() {
     async function fetchMovieDetails() {
       setMovieLoading(true);
       setMovieError("");
+      setMovie(null);
 
       try {
-        const data = await getMovieById(movieNumericId, {
+        const data = await getMovieById(movieLookupKey, {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
@@ -400,7 +507,12 @@ export default function MovieDetailPage() {
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error("Fetch movie detail error", error);
-          setMovieError("Không tải được thông tin phim. Vui lòng thử lại.");
+          const status = error?.status ?? error?.response?.status;
+          if (status === 404) {
+            setMovieError("Không tìm thấy phim bạn yêu cầu.");
+          } else {
+            setMovieError("Không tải được thông tin phim. Vui lòng thử lại.");
+          }
           setMovie(null);
         }
       } finally {
@@ -413,7 +525,7 @@ export default function MovieDetailPage() {
     fetchMovieDetails();
 
     return () => controller.abort();
-  }, [movieNumericId]);
+  }, [movieLookupKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -437,9 +549,15 @@ export default function MovieDetailPage() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error("Fetch showtimes error", error);
-          setShowtimeError("Không tải được lịch chiếu. Vui lòng thử lại.");
-          setShowtimes([]);
+          const status = error?.status ?? error?.response?.status;
+          if (status === 404) {
+            setShowtimes([]);
+            setShowtimeError("");
+          } else {
+            console.error("Fetch showtimes error", error);
+            setShowtimeError("Không tải được lịch chiếu. Vui lòng thử lại.");
+            setShowtimes([]);
+          }
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -451,19 +569,19 @@ export default function MovieDetailPage() {
     fetchShowtimes();
 
     return () => controller.abort();
-  }, [movieNumericId]);
+  }, [movieLookupKey]);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    if (!movieNumericId) {
+    if (!movieLookupKey) {
       setReviewStats(null);
       return () => controller.abort();
     }
 
     async function fetchStats() {
       try {
-        const data = await getMovieReviewStats(movieNumericId, {
+        const data = await getMovieReviewStats(movieInternalId, {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
@@ -480,11 +598,11 @@ export default function MovieDetailPage() {
     fetchStats();
 
     return () => controller.abort();
-  }, [movieNumericId]);
+  }, [movieInternalId]);
 
   const loadReviews = useCallback(
     (pageNumber = 1) => {
-      if (!movieNumericId) return;
+      if (!movieInternalId) return;
 
       reviewAbortRef.current?.abort?.();
       const controller = new AbortController();
@@ -494,7 +612,7 @@ export default function MovieDetailPage() {
       setReviewError("");
 
       getReviewsByMovie(
-        movieNumericId,
+        movieInternalId,
         {
           pageNumber,
           pageSize: reviewPageSize,
@@ -535,11 +653,11 @@ export default function MovieDetailPage() {
           }
         });
     },
-    [movieNumericId, reviewPageSize]
+    [movieInternalId, reviewPageSize]
   );
 
   useEffect(() => {
-    if (!movieNumericId) {
+    if (!movieInternalId) {
       setReviews([]);
       setReviewHasMore(false);
       setReviewLoading(false);
@@ -549,7 +667,7 @@ export default function MovieDetailPage() {
     return () => {
       reviewAbortRef.current?.abort?.();
     };
-  }, [movieNumericId, loadReviews]);
+  }, [movieInternalId, loadReviews]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -562,8 +680,12 @@ export default function MovieDetailPage() {
         ]);
 
         if (!controller.signal.aborted) {
-          setRelatedNowShowing(Array.isArray(nowShowing) ? nowShowing.slice(0, 8) : []);
-          setRelatedComingSoon(Array.isArray(comingSoon) ? comingSoon.slice(0, 8) : []);
+          setRelatedNowShowing(
+            Array.isArray(nowShowing) ? nowShowing.slice(0, 8) : []
+          );
+          setRelatedComingSoon(
+            Array.isArray(comingSoon) ? comingSoon.slice(0, 8) : []
+          );
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -610,7 +732,9 @@ export default function MovieDetailPage() {
   }, [navigate]);
 
   const handleOrders = useCallback(() => {
-    alert("Tính năng đơn hàng hiện khả dụng tại trang chủ. Hệ thống sẽ chuyển bạn về trang chủ.");
+    alert(
+      "Tính năng đơn hàng hiện khả dụng tại trang chủ. Hệ thống sẽ chuyển bạn về trang chủ."
+    );
     navigate("/");
   }, [navigate]);
 
@@ -621,15 +745,70 @@ export default function MovieDetailPage() {
     navigate("/");
   }, [navigate, isLoggedIn]);
 
-  const averageRating = pickAverageRating(movie, reviewStats);
-  const reviewCount = pickReviewCount(movie, reviewStats);
-  const runtime = formatRuntime(movie?.duration || movie?.runtime || movie?.length);
-  const categories = formatCategories(movie);
-  const releaseYear = formatReleaseYear(movie);
-  const trailerLink = getTrailerLink(movie);
-  const actors = extractActors(movie);
-  const directors = extractDirectors(movie);
-  const countries = extractCountries(movie);
+  const safeMovie = movie || {};
+  const averageRating = pickAverageRating(safeMovie, reviewStats);
+  const reviewCount = pickReviewCount(safeMovie, reviewStats);
+  const runtime = formatRuntime(
+    safeMovie?.duration || safeMovie?.runtime || safeMovie?.length
+  );
+  const categories = formatCategories(safeMovie);
+  const releaseYear = formatReleaseYear(safeMovie);
+  const trailerLink = getTrailerLink(safeMovie);
+  const trailerEmbedUrl = useMemo(
+    () => resolveTrailerEmbedUrl(trailerLink),
+    [trailerLink]
+  );
+  const actors = extractActors(safeMovie);
+  const directors = extractDirectors(safeMovie);
+  const countries = extractCountries(safeMovie);
+
+  const handleOpenTrailer = useCallback(() => {
+    if (trailerEmbedUrl) {
+      setTrailerOpen(true);
+      return;
+    }
+
+    if (trailerLink && typeof window !== "undefined") {
+      window.open(trailerLink, "_blank", "noopener,noreferrer");
+    }
+  }, [trailerEmbedUrl, trailerLink]);
+
+  const handleCloseTrailer = useCallback(() => {
+    setTrailerOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (!isTrailerOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setTrailerOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isTrailerOpen]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    if (!isTrailerOpen) return undefined;
+
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [isTrailerOpen]);
+
+  useEffect(() => {
+    setTrailerOpen(false);
+  }, [movieLookupKey]);
 
   const handleBack = () => {
     navigate(-1);
@@ -651,13 +830,19 @@ export default function MovieDetailPage() {
 
       <main className="movie-detail-content">
         <div className="movie-detail-container">
-          <button type="button" className="movie-detail-back" onClick={handleBack}>
+          <button
+            type="button"
+            className="movie-detail-back"
+            onClick={handleBack}
+          >
             ← Quay lại
           </button>
 
           {movieLoading ? (
             <section className="movie-detail-hero movie-detail-hero--loading">
-              <div className="movie-detail-state">Đang tải thông tin phim...</div>
+              <div className="movie-detail-state">
+                Đang tải thông tin phim...
+              </div>
             </section>
           ) : movieError ? (
             <section className="movie-detail-hero movie-detail-hero--error">
@@ -696,7 +881,9 @@ export default function MovieDetailPage() {
                     </span>
                   ) : null}
                   {releaseYear ? (
-                    <span className="movie-detail-meta-item">{releaseYear}</span>
+                    <span className="movie-detail-meta-item">
+                      {releaseYear}
+                    </span>
                   ) : null}
                   {runtime ? (
                     <span className="movie-detail-meta-item">{runtime}</span>
@@ -725,22 +912,21 @@ export default function MovieDetailPage() {
                   </p>
                 ) : null}
 
-                {movie?.description || movie?.content || movie?.synopsis ? (
+                {movie?.description ? (
                   <p className="movie-detail-description">
-                    {movie.description || movie.content || movie.synopsis}
+                    Tóm tắt: {movie.description}
                   </p>
                 ) : null}
 
                 <div className="movie-detail-actions">
                   {trailerLink ? (
-                    <a
+                    <button
+                      type="button"
                       className="movie-detail-action primary"
-                      href={trailerLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={handleOpenTrailer}
                     >
                       Xem trailer
-                    </a>
+                    </button>
                   ) : null}
                   <a className="movie-detail-action" href="#showtimes">
                     Xem lịch chiếu
@@ -778,12 +964,20 @@ export default function MovieDetailPage() {
                       <button
                         key={dateKey}
                         type="button"
-                        className={`movie-detail-date ${isActive ? "active" : ""}`}
+                        className={`movie-detail-date ${
+                          isActive ? "active" : ""
+                        }`}
                         onClick={() => setActiveDate(dateKey)}
                       >
-                        <span className="movie-detail-date-weekday">{dateLabel.weekday}</span>
-                        <span className="movie-detail-date-day">{dateLabel.day}</span>
-                        <span className="movie-detail-date-month">{dateLabel.month}</span>
+                        <span className="movie-detail-date-weekday">
+                          {dateLabel.weekday}
+                        </span>
+                        <span className="movie-detail-date-day">
+                          {dateLabel.day}
+                        </span>
+                        <span className="movie-detail-date-month">
+                          {dateLabel.month}
+                        </span>
                       </button>
                     );
                   })}
@@ -802,12 +996,16 @@ export default function MovieDetailPage() {
                       >
                         <div className="movie-detail-cinema-header">
                           <h3>{cinema.cinemaName}</h3>
-                          {cinema.cinemaAddress ? <p>{cinema.cinemaAddress}</p> : null}
+                          {cinema.cinemaAddress ? (
+                            <p>{cinema.cinemaAddress}</p>
+                          ) : null}
                         </div>
                         <div className="movie-detail-showtime-grid">
                           {cinema.showtimes.map((item) => (
                             <button
-                              key={`${cinema.cinemaId || cinema.cinemaName}-${item.id || item.timeLabel}`}
+                              key={`${cinema.cinemaId || cinema.cinemaName}-${
+                                item.id || item.timeLabel
+                              }`}
                               type="button"
                               className="movie-detail-showtime"
                             >
@@ -815,7 +1013,9 @@ export default function MovieDetailPage() {
                                 {item.timeLabel || "--:--"}
                               </span>
                               {item.format ? (
-                                <span className="movie-detail-showtime-format">{item.format}</span>
+                                <span className="movie-detail-showtime-format">
+                                  {item.format}
+                                </span>
                               ) : null}
                               {item.price != null ? (
                                 <span className="movie-detail-showtime-price">
@@ -855,7 +1055,9 @@ export default function MovieDetailPage() {
                 <div className="movie-detail-review-summary">
                   {averageRating != null ? (
                     <div className="movie-detail-review-score">
-                      <span className="movie-detail-review-score-value">{averageRating}</span>
+                      <span className="movie-detail-review-score-value">
+                        {averageRating}
+                      </span>
                       <span className="movie-detail-review-score-max">/10</span>
                     </div>
                   ) : (
@@ -865,7 +1067,9 @@ export default function MovieDetailPage() {
                   )}
                   <div className="movie-detail-review-meta">
                     {reviewCount != null ? (
-                      <span>{reviewCount.toLocaleString("vi-VN")} lượt đánh giá</span>
+                      <span>
+                        {reviewCount.toLocaleString("vi-VN")} lượt đánh giá
+                      </span>
                     ) : (
                       <span>Hãy là người đầu tiên đánh giá!</span>
                     )}
@@ -873,7 +1077,9 @@ export default function MovieDetailPage() {
                 </div>
 
                 {reviewLoading && reviews.length === 0 ? (
-                  <div className="movie-detail-state">Đang tải bình luận...</div>
+                  <div className="movie-detail-state">
+                    Đang tải bình luận...
+                  </div>
                 ) : reviews.length === 0 ? (
                   <div className="movie-detail-state">
                     Chưa có bình luận nào cho phim này.
@@ -913,7 +1119,9 @@ export default function MovieDetailPage() {
                           ) : null}
                         </div>
                         {review.title ? (
-                          <p className="movie-detail-review-title">{review.title}</p>
+                          <p className="movie-detail-review-title">
+                            {review.title}
+                          </p>
                         ) : null}
                         <p className="movie-detail-review-body">
                           {review.content || review.comment || review.body}
@@ -921,8 +1129,11 @@ export default function MovieDetailPage() {
                         {review.likes != null || review.helpfulCount != null ? (
                           <div className="movie-detail-review-footer">
                             <span>
-                              Hữu ích: {(
-                                review.helpfulCount ?? review.likes ?? 0
+                              Hữu ích:{" "}
+                              {(
+                                review.helpfulCount ??
+                                review.likes ??
+                                0
                               ).toLocaleString("vi-VN")}
                             </span>
                           </div>
@@ -953,44 +1164,122 @@ export default function MovieDetailPage() {
           <div className="movie-detail-sidebar-section">
             <h3>Phim đang chiếu</h3>
             <ul>
-              {relatedNowShowing.map((item) => (
-                <li key={item.id || item.movieId || item.name}>
-                  <Link to={`/movies/${item.id || item.movieId}`} className="movie-detail-sidebar-link">
-                    <span className="movie-detail-sidebar-name">
-                      {item.name || item.title}
-                    </span>
-                    {item.averageRating ? (
-                      <span className="movie-detail-sidebar-rating">
-                        {Number(item.averageRating).toFixed(1)}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
+              {relatedNowShowing.map((item) => {
+                const posterMeta = resolvePosterMeta(item);
+
+                return (
+                  <li key={item.id || item.movieId || item.slug || item.name}>
+                    <Link
+                      to={resolveMovieLink(item)}
+                      className="movie-detail-sidebar-link"
+                    >
+                      <div className="movie-detail-sidebar-thumb">
+                        {posterMeta.hasImage ? (
+                          <img
+                            src={posterMeta.src}
+                            alt={item.name || item.title || "Poster phim"}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="movie-detail-sidebar-thumb-placeholder">
+                            {posterMeta.text}
+                          </span>
+                        )}
+                      </div>
+                      <div className="movie-detail-sidebar-details">
+                        <span className="movie-detail-sidebar-name">
+                          {item.name || item.title}
+                        </span>
+                        {item.averageRating ? (
+                          <span className="movie-detail-sidebar-rating">
+                            {Number(item.averageRating).toFixed(1)} / 10
+                          </span>
+                        ) : null}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
           <div className="movie-detail-sidebar-section">
             <h3>Phim sắp chiếu</h3>
             <ul>
-              {relatedComingSoon.map((item) => (
-                <li key={item.id || item.movieId || item.name}>
-                  <Link to={`/movies/${item.id || item.movieId}`} className="movie-detail-sidebar-link">
-                    <span className="movie-detail-sidebar-name">
-                      {item.name || item.title}
-                    </span>
-                    {item.releaseDate ? (
-                      <span className="movie-detail-sidebar-date">
-                        {new Date(item.releaseDate).toLocaleDateString("vi-VN")}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
+              {relatedComingSoon.map((item) => {
+                const posterMeta = resolvePosterMeta(item);
+
+                return (
+                  <li key={item.id || item.movieId || item.slug || item.name}>
+                    <Link
+                      to={resolveMovieLink(item)}
+                      className="movie-detail-sidebar-link"
+                    >
+                      <div className="movie-detail-sidebar-thumb">
+                        {posterMeta.hasImage ? (
+                          <img
+                            src={posterMeta.src}
+                            alt={item.name || item.title || "Poster phim"}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="movie-detail-sidebar-thumb-placeholder">
+                            {posterMeta.text}
+                          </span>
+                        )}
+                      </div>
+                      <div className="movie-detail-sidebar-details">
+                        <span className="movie-detail-sidebar-name">
+                          {item.name || item.title}
+                        </span>
+                        {item.releaseDate ? (
+                          <span className="movie-detail-sidebar-date">
+                            {new Date(item.releaseDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </span>
+                        ) : null}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </aside>
       </main>
+
+      {isTrailerOpen && trailerEmbedUrl ? (
+        <div className="movie-trailer-modal" role="dialog" aria-modal="true">
+          <div
+            className="movie-trailer-backdrop"
+            onClick={handleCloseTrailer}
+          />
+          <div className="movie-trailer-dialog" role="document">
+            <button
+              type="button"
+              className="movie-trailer-close"
+              aria-label="Đóng trailer"
+              onClick={handleCloseTrailer}
+            >
+              ×
+            </button>
+            <div className="movie-trailer-frame">
+              <iframe
+                src={trailerEmbedUrl}
+                title={`Trailer ${movie?.name || movie?.title || "phim"}`}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            </div>
+            {movie?.name || movie?.title ? (
+              <div className="movie-trailer-caption">
+                {movie?.name || movie?.title}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
