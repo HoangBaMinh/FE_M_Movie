@@ -7,6 +7,76 @@ export async function getMovies(opts = {}) {
   return res.data;
 }
 
+function normalizeIdentifier(value) {
+  if (value == null) return null;
+  const raw = typeof value === "string" ? value.trim() : value;
+  if (raw === "") return null;
+  return raw;
+}
+
+function isNumericId(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0;
+  }
+
+  if (typeof value === "string") {
+    return /^\d+$/.test(value);
+  }
+
+  return false;
+}
+
+async function fetchMovieBySlug(slug, opts = {}) {
+  const searchTerm = String(slug);
+
+  const res = await http.get("/Movie/paged", {
+    params: {
+      pageNumber: 1,
+      pageSize: 1,
+      searchTerm,
+    },
+    signal: opts.signal,
+  });
+
+  const items = res?.data?.items ?? res?.data?.Items ?? [];
+  if (Array.isArray(items) && items.length > 0) {
+    return items[0];
+  }
+
+  const error = new Error("Movie not found");
+  error.status = 404;
+  throw error;
+}
+
+export async function getMovieBySlug(slug, opts = {}) {
+  const identifier = normalizeIdentifier(slug);
+
+  if (identifier == null) {
+    throw new Error("Movie slug is required");
+  }
+
+  return fetchMovieBySlug(identifier, opts);
+}
+
+export async function getMovieById(idOrSlug, opts = {}) {
+  const identifier = normalizeIdentifier(idOrSlug);
+
+  if (identifier == null) {
+    throw new Error("Movie id is required");
+  }
+
+  if (isNumericId(identifier)) {
+    const numericId = Number(identifier);
+    const res = await http.get(`/Movie/${numericId}`, {
+      signal: opts.signal,
+    });
+
+    return res.data;
+  }
+
+  return fetchMovieBySlug(identifier, opts);
+}
+
 export async function getMoviesByCategory(categoryId, opts = {}) {
   const res = await http.get(`/Movie/by-category/${categoryId}`, {
     signal: opts.signal,

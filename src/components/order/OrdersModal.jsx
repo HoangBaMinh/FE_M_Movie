@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import "../css/OrdersModal.css";
+import "../../css/OrdersModal.css";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",

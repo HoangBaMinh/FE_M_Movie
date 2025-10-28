@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import useChatbot from "../hooks/useChatbot";
-import "../css/ChatWidget.css";
-
+import useChatbot from "../../hooks/useChatbot";
+import "../../css/ChatWidget.css";
 export default function ChatWidget({ isOpen, onClose, isLoggedIn }) {
   const [draft, setDraft] = useState("");
   const messageListRef = useRef(null);

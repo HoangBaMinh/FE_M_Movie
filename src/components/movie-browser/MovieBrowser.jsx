@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useDebounce from "../hooks/useDebounce";
-import { useCategories } from "../hooks/useCategories";
-import { useCountries } from "../hooks/useCountries";
-import { useCinemas } from "../hooks/useCinemas";
-import { useOrders } from "../hooks/useOrders";
-import HeaderBar from "./HeaderBar";
-import AuthModal from "./AuthModal";
-import FilterBar from "./movie-browser/FilterBar";
-import MovieSection from "./movie-browser/MovieSection";
-import ShowcaseCarousel from "./movie-browser/ShowcaseCarousel";
-import ChatWidget from "./ChatWidget";
-import { logout as logoutApi } from "../services/authService";
-import { getAccessToken, logout as clearTokens } from "../api/http";
+import useDebounce from "../../hooks/useDebounce";
+import { useCategories } from "../../hooks/useCategories";
+import { useCountries } from "../../hooks/useCountries";
+import { useCinemas } from "../../hooks/useCinemas";
+import { useOrders } from "../../hooks/useOrders";
+import HeaderBar from "../header/HeaderBar";
+import AuthModal from "../pages/AuthModal";
+import FilterBar from "./FilterBar";
+import MovieSection from "./MovieSection";
+import ShowcaseCarousel from "./ShowcaseCarousel";
+import ChatWidget from "../chat-bot/ChatWidget";
+import { logout as logoutApi } from "../../services/authService";
+import { getAccessToken, logout as clearTokens } from "../../api/http";
 import {
   getMovies,
   getComingSoonMovies,
@@ -22,9 +22,9 @@ import {
   getMoviesFiltered,
   getMoviesPaged,
   searchMoviesByName,
-} from "../services/movieService";
-import "../css/MovieBrowser.css";
-import OrdersModal from "./OrdersModal";
+} from "../../services/movieService";
+import "../../css/MovieBrowser.css";
+import OrdersModal from "../order/OrdersModal";
 export default function MovieBrowser() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeCountry, setActiveCountry] = useState(null);
