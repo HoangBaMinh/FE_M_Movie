@@ -33,6 +33,7 @@ import MovieReviews from "./MovieReviews";
 import MovieDetailSidebar from "./MovieDetailSidebar";
 import MovieTrailerModal from "./MovieTrailerModal";
 import "../../css/MovieDetailPage.css";
+import SeatSelectionModal from "./SeatSelectionModal";
 
 export default function MovieDetailPage() {
   const { movieSlug } = useParams();
@@ -61,6 +62,8 @@ export default function MovieDetailPage() {
   const [relatedNowShowing, setRelatedNowShowing] = useState([]);
   const [relatedComingSoon, setRelatedComingSoon] = useState([]);
   const [isTrailerOpen, setTrailerOpen] = useState(false);
+  const [isSeatModalOpen, setSeatModalOpen] = useState(false);
+  const [selectedShowtime, setSelectedShowtime] = useState(null);
 
   const routeParam = useMemo(() => {
     if (!movieSlug) return null;
@@ -398,6 +401,34 @@ export default function MovieDetailPage() {
     navigate("/");
   }, [navigate, isLoggedIn]);
 
+  const handleSelectShowtime = useCallback((showtime, cinema) => {
+    if (!showtime) return;
+
+    const context = {
+      ...showtime,
+      cinemaId:
+        showtime.cinemaId ?? cinema?.cinemaId ?? showtime.cinema?.id ?? null,
+      cinemaName:
+        showtime.cinemaName ||
+        cinema?.cinemaName ||
+        showtime.cinema?.name ||
+        "Rạp chưa rõ",
+      cinemaAddress:
+        showtime.cinemaAddress ||
+        cinema?.cinemaAddress ||
+        showtime.cinema?.address ||
+        "",
+    };
+
+    setSelectedShowtime(context);
+    setSeatModalOpen(true);
+  }, []);
+
+  const handleCloseSeatModal = useCallback(() => {
+    setSeatModalOpen(false);
+    setSelectedShowtime(null);
+  }, []);
+
   const safeMovie = movie || {};
   const averageRating = pickAverageRating(safeMovie, reviewStats);
   const reviewCount = pickReviewCount(safeMovie, reviewStats);
@@ -516,6 +547,7 @@ export default function MovieDetailPage() {
             activeDate={activeDate}
             onSelectDate={setActiveDate}
             showtimesForActiveDate={showtimesForActiveDate}
+            onSelectShowtime={handleSelectShowtime}
           />
 
           <MovieReviews
@@ -542,6 +574,13 @@ export default function MovieDetailPage() {
         embedUrl={trailerEmbedUrl}
         title={`Trailer ${movie?.name || movie?.title || "phim"}`}
         onClose={handleCloseTrailer}
+      />
+
+      <SeatSelectionModal
+        isOpen={isSeatModalOpen}
+        onClose={handleCloseSeatModal}
+        showtime={selectedShowtime}
+        movie={movie}
       />
     </div>
   );

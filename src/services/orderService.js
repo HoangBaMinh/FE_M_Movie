@@ -16,6 +16,110 @@ const ORDER_ENDPOINTS = [
 
 const LAST_ORDER_ENDPOINT = ORDER_ENDPOINTS[ORDER_ENDPOINTS.length - 1];
 
+const ORDER_CREATE_ENDPOINTS = [
+  "/Order",
+  "/Orders",
+  "/Order/create",
+  "/Orders/create",
+  "/Order/book",
+  "/Orders/book",
+];
+
+function buildOrderPayload(basePayload = {}) {
+  if (!basePayload || typeof basePayload !== "object") {
+    return {};
+  }
+
+  const {
+    showtimeId,
+    seatIds = [],
+    promotionCode,
+    promotionId,
+    subtotal,
+    discount,
+    total,
+    tickets = [],
+  } = basePayload;
+
+  const normalizedSeatIds = Array.from(
+    new Set(
+      (seatIds || [])
+        .map((item) =>
+          item == null || item === ""
+            ? null
+            : Number.isFinite(Number(item))
+            ? Number(item)
+            : item
+        )
+        .filter((item) => item !== null)
+    )
+  );
+
+  const payload = {
+    showtimeId:
+      showtimeId ?? basePayload.showTimeId ?? basePayload.showtimeID ?? null,
+    showTimeId: showtimeId ?? basePayload.showTimeId ?? null,
+    showtimeID: showtimeId ?? basePayload.showtimeID ?? null,
+    showTimeID: showtimeId ?? basePayload.showTimeID ?? null,
+    seatIds: normalizedSeatIds,
+    seats: normalizedSeatIds,
+    seatIdList: normalizedSeatIds,
+    showtimeSeatIds: normalizedSeatIds,
+    showTimeSeatIds: normalizedSeatIds,
+    seatCodes: basePayload.seatCodes || basePayload.seats || [],
+    tickets: Array.isArray(tickets) ? tickets : [],
+    items: Array.isArray(tickets) ? tickets : [],
+    promotionCode: promotionCode || basePayload.promotionCode || null,
+    promotionId: promotionId ?? basePayload.promotionId ?? null,
+    discountAmount: discount ?? basePayload.discountAmount ?? null,
+    totalAmount: total ?? basePayload.totalAmount ?? basePayload.amount ?? null,
+    subTotal: subtotal ?? basePayload.subTotal ?? subtotal,
+    orderAmount: total ?? basePayload.orderAmount ?? null,
+    finalAmount: total ?? basePayload.finalAmount ?? null,
+  };
+
+  return {
+    ...basePayload,
+    ...payload,
+  };
+}
+
+function extractOrderId(data) {
+  if (data == null) return null;
+
+  if (typeof data === "number" || typeof data === "bigint") {
+    return Number(data);
+  }
+
+  if (typeof data === "string") {
+    const numeric = Number(data);
+    return Number.isFinite(numeric) ? numeric : data;
+  }
+
+  const candidates = [
+    data.id,
+    data.orderId,
+    data.orderID,
+    data.orderCode,
+    data.value,
+    data.result,
+    data.data,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate == null || candidate === "") continue;
+    if (typeof candidate === "number" || typeof candidate === "bigint") {
+      return Number(candidate);
+    }
+    if (typeof candidate === "string") {
+      const numeric = Number(candidate);
+      return Number.isFinite(numeric) ? numeric : candidate;
+    }
+  }
+
+  return null;
+}
+
 export function extractOrdersList(data) {
   if (!data) return [];
 
@@ -77,4 +181,44 @@ export async function getMyOrders(opts = {}) {
   throw new Error("Không tìm thấy API đơn hàng phù hợp.");
 }
 
-export default { getMyOrders };
+export async function createOrder(basePayload = {}, opts = {}) {
+  const payload = buildOrderPayload(basePayload);
+
+  let lastError = null;
+
+  for (const endpoint of ORDER_CREATE_ENDPOINTS) {
+    try {
+      const response = await http.post(endpoint, payload, {
+        signal: opts.signal,
+      });
+
+      const data = response?.data ?? null;
+
+      return {
+        data,
+        orderId: extractOrderId(data),
+        endpoint,
+      };
+    } catch (error) {
+      if (error?.name === "CanceledError" || error?.code === "ERR_CANCELED") {
+        throw error;
+      }
+
+      if (error?.response?.status === 404 || error?.response?.status === 405) {
+        lastError = error;
+        continue;
+      }
+
+      lastError = error;
+      break;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error("Không tạo được đơn hàng. Vui lòng thử lại sau.");
+}
+
+export default { getMyOrders, createOrder };

@@ -91,6 +91,7 @@ export function normalizeShowtime(showtime = {}) {
 
   return {
     id: showtime.id || showtime.showtimeId || showtime.showTimeId || null,
+    roomId: showtime.roomId || showtime.room?.id || showtime.roomID || null,
     cinemaId: showtime.cinemaId ?? showtime.cinema?.id ?? null,
     cinemaName:
       showtime.cinemaName ||
