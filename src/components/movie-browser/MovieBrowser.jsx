@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useDebounce from "../../hooks/useDebounce";
 import { useCategories } from "../../hooks/useCategories";
 import { useCountries } from "../../hooks/useCountries";
-import { useCinemas } from "../../hooks/useCinemas";
 import { useOrders } from "../../hooks/useOrders";
 import HeaderBar from "../header/HeaderBar";
 import AuthModal from "../pages/AuthModal";
 import FilterBar from "./FilterBar";
+import AppFooter from "../footer/AppFooter";
+
 import MovieSection from "./MovieSection";
 import ShowcaseCarousel from "./ShowcaseCarousel";
 import ChatWidget from "../chat-bot/ChatWidget";
@@ -17,7 +18,6 @@ import {
   getComingSoonMovies,
   getNowShowingMovies,
   getMoviesByCategory,
-  getMoviesByCinema,
   getMoviesByCountry,
   getMoviesFiltered,
   getMoviesPaged,
@@ -28,7 +28,6 @@ import OrdersModal from "../order/OrdersModal";
 export default function MovieBrowser() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeCountry, setActiveCountry] = useState(null);
-  const [activeCinema, setActiveCinema] = useState(null);
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -72,15 +71,7 @@ export default function MovieBrowser() {
     error: countriesError,
   } = useCountries();
 
-  const {
-    data: cinemas = [],
-    loading: loadingCinemas,
-    error: cinemasError,
-  } = useCinemas();
-
-  const error =
-    categoriesError || countriesError || moviesError || cinemasError;
-
+  const error = categoriesError || countriesError || moviesError;
   const loadShowcases = useCallback(() => {
     showcasesAbortRef.current?.abort?.();
     const controller = new AbortController();
@@ -146,7 +137,7 @@ export default function MovieBrowser() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeCategory, activeCountry, activeCinema, debouncedQuery]);
+  }, [activeCategory, activeCountry, debouncedQuery]);
 
   useEffect(() => {
     fetchAbortRef.current?.abort?.();
@@ -169,7 +160,6 @@ export default function MovieBrowser() {
               searchTerm: trimmedQuery,
               categoryId: activeCategory ?? undefined,
               countryId: activeCountry ?? undefined,
-              cinemaId: activeCinema ?? undefined,
               sortBy: "name",
               sortDescending: false,
             },
@@ -320,10 +310,6 @@ export default function MovieBrowser() {
           data = await getMoviesByCategory(activeCategory, {
             signal: controller.signal,
           });
-        } else if (activeCinema != null) {
-          data = await getMoviesByCinema(activeCinema, {
-            signal: controller.signal,
-          });
         } else {
           data = await getMovies({ signal: controller.signal });
         }
@@ -335,13 +321,7 @@ export default function MovieBrowser() {
     run();
 
     return () => controller.abort();
-  }, [
-    activeCategory,
-    activeCountry,
-    activeCinema,
-    currentPage,
-    debouncedQuery,
-  ]);
+  }, [activeCategory, activeCountry, currentPage, debouncedQuery]);
 
   const hasActiveSearch = Boolean(debouncedQuery?.trim());
 
@@ -361,12 +341,6 @@ export default function MovieBrowser() {
         ? `QUỐC GIA: ${country.name.toUpperCase()}`
         : "QUỐC GIA ĐƯỢC CHỌN";
     }
-    if (activeCinema) {
-      const cinema = cinemas.find((item) => item.id === activeCinema);
-      return cinema
-        ? `RẠP CHIẾU: ${cinema.name.toUpperCase()}`
-        : "RẠP CHIẾU ĐƯỢC CHỌN";
-    }
 
     return "PHIM ĐỀ CỬ";
   }, [
@@ -374,10 +348,8 @@ export default function MovieBrowser() {
     hasActiveSearch,
     activeCategory,
     activeCountry,
-    activeCinema,
     categories,
     countries,
-    cinemas,
   ]);
 
   const handlePageChange = (page) => {
@@ -403,7 +375,6 @@ export default function MovieBrowser() {
     setShowAuthModal(false);
     setActiveCategory(null);
     setActiveCountry(null);
-    setActiveCinema(null);
     setQuery("");
   };
 
@@ -501,21 +472,17 @@ export default function MovieBrowser() {
       <FilterBar
         categories={categories}
         countries={countries}
-        cinemas={cinemas}
         activeCategory={activeCategory}
         activeCountry={activeCountry}
         hasActiveSearch={hasActiveSearch}
         onSelectCategory={setActiveCategory}
         onSelectCountry={setActiveCountry}
-        onSelectCinema={setActiveCinema}
         onReset={() => {
           setActiveCategory(null);
           setActiveCountry(null);
-          setActiveCinema(null);
         }}
         loadingCategories={loadingCategories}
         loadingCountries={loadingCountries}
-        loadingCinemas={loadingCinemas}
       />
 
       <main className="main-content">
@@ -582,6 +549,8 @@ export default function MovieBrowser() {
           isLoggedIn={isLoggedIn}
         />
       )}
+
+      <AppFooter />
     </div>
   );
 }
