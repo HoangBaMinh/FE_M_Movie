@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useChatbot from "../../hooks/useChatbot";
+import { fmtLocal, fmtLocalTime, toLocalDayjs } from "../../utils/datetime.js";
 import "../../css/ChatWidget.css";
+
 export default function ChatWidget({ isOpen, onClose, isLoggedIn }) {
   const [draft, setDraft] = useState("");
   const messageListRef = useRef(null);
@@ -66,13 +68,9 @@ export default function ChatWidget({ isOpen, onClose, isLoggedIn }) {
       statistics.lastMessageAt ||
       statistics.updatedAt;
 
-    let lastInteraction = null;
-    if (lastInteractionRaw) {
-      const parsed = new Date(lastInteractionRaw);
-      if (!Number.isNaN(parsed.getTime())) {
-        lastInteraction = parsed;
-      }
-    }
+    const lastInteraction = lastInteractionRaw
+      ? toLocalDayjs(lastInteractionRaw)
+      : null;
 
     return { total, lastInteraction };
   }, [statistics]);
@@ -135,7 +133,10 @@ export default function ChatWidget({ isOpen, onClose, isLoggedIn }) {
                   <>
                     {" "}
                     | Lần cuối:{" "}
-                    {statisticsSummary.lastInteraction.toLocaleString()}
+                    {fmtLocal(
+                      statisticsSummary.lastInteraction,
+                      "DD/MM/YYYY HH:mm"
+                    )}
                   </>
                 )}
               </p>
@@ -208,10 +209,7 @@ export default function ChatWidget({ isOpen, onClose, isLoggedIn }) {
                       className="chat-widget__time"
                       dateTime={item.timestamp}
                     >
-                      {new Date(item.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {fmtLocalTime(item.timestamp, "HH:mm")}
                     </time>
                   )}
                 </div>

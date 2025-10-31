@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { toLocalDayjs } from "../../utils/datetime.js";
 
 const FALLBACK_POSTER =
   "linear-gradient(135deg, rgba(34, 34, 34, 0.8), rgba(80, 80, 80, 0.8))";
@@ -17,18 +18,12 @@ function pickRating(movie = {}) {
 }
 
 function pickDate(movie = {}) {
-  const dateValue = movie.releaseDate || null;
+  const date = toLocalDayjs(movie.releaseDate);
+  if (!date) return null;
 
-  if (!dateValue) return null;
-
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = date
-    .toLocaleString("vi-VN", { month: "short" })
-    .replace(".", "");
-  const year = date.getFullYear();
+  const day = date.format("DD");
+  const month = date.locale("vi").format("MMM").replace(".", "");
+  const year = date.format("YYYY");
 
   return { day, month, year };
 }

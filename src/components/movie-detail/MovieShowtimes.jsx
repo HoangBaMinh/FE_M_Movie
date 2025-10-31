@@ -12,6 +12,7 @@ export default function MovieShowtimes({
   activeDate,
   onSelectDate,
   showtimesForActiveDate,
+  onSelectShowtime = () => {},
 }) {
   return (
     <section className="movie-detail-section" id="showtimes">
@@ -82,6 +83,29 @@ export default function MovieShowtimes({
                         }`}
                         type="button"
                         className="movie-detail-showtime"
+                        onClick={() =>
+                          onSelectShowtime?.(
+                            {
+                              ...item,
+                              cinemaId:
+                                item.cinemaId ??
+                                cinema.cinemaId ??
+                                item.cinema?.id ??
+                                null,
+                              cinemaName:
+                                item.cinemaName ||
+                                cinema.cinemaName ||
+                                item.cinema?.name ||
+                                "Rạp chưa rõ",
+                              cinemaAddress:
+                                item.cinemaAddress ||
+                                cinema.cinemaAddress ||
+                                item.cinema?.address ||
+                                "",
+                            },
+                            cinema
+                          )
+                        }
                       >
                         <span className="movie-detail-showtime-time">
                           {item.timeLabel || "--:--"}

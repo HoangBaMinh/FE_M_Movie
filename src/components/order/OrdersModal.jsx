@@ -1,15 +1,11 @@
 import { useEffect, useMemo } from "react";
 import "../../css/OrdersModal.css";
+import {fmtLocal} from "../../utils/datetime.js";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",
   currency: "VND",
   maximumFractionDigits: 0,
-});
-
-const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
-  dateStyle: "medium",
-  timeStyle: "short",
 });
 
 function getValueAtPath(obj, path) {
@@ -85,32 +81,12 @@ function formatCurrency(value) {
 }
 
 function formatDate(value) {
-  if (!value && value !== 0) return "";
+  if (value === undefined || value === null || value === "") return "";
 
-  let date;
-  if (value instanceof Date) {
-    date = value;
-  } else if (typeof value === "number") {
-    date = new Date(value > 1e12 ? value : value * 1000);
-  } else {
-    const numeric = Number(value);
-    if (Number.isFinite(numeric) && numeric > 0) {
-      date = new Date(numeric > 1e12 ? numeric : numeric * 1000);
-    } else {
-      date = new Date(value);
-    }
-  }
+  const formatted = fmtLocal(value, "DD/MM/YYYY HH:mm");
+  if (formatted) return formatted;
 
-  if (!date || Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  try {
-    return dateFormatter.format(date);
-  } catch (error) {
-    console.warn("formatDate error", error);
-    return date.toLocaleString("vi-VN");
-  }
+  return String(value);
 }
 
 function normalizeStatus(status) {

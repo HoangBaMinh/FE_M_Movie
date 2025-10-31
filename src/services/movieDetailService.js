@@ -1,3 +1,10 @@
+import {
+  formatLocalDateParts,
+  fmtLocalTime,
+  toLocalDate,
+  toLocalDayjs,
+} from "../utils/datetime.js";
+
 const FALLBACK_POSTER =
   "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80";
 
@@ -31,17 +38,14 @@ export function formatRuntime(value) {
 }
 
 export function parseDate(value) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date;
+  return toLocalDate(value);
 }
 
 export function formatReleaseYear(movie = {}) {
   const date =
-    parseDate(movie.releaseDate) || parseDate(movie.publishedAt) || null;
+    toLocalDayjs(movie.releaseDate) || toLocalDayjs(movie.publishedAt) || null;
   if (!date) return "";
-  return `${date.getFullYear()}`;
+  return `${date.year()}`;
 }
 
 export function formatCategories(movie = {}) {
@@ -74,23 +78,19 @@ export function normalizeShowtime(showtime = {}) {
     showtime.start;
   const fallbackDate = showtime.date || showtime.showDate || showtime.playDate;
 
-  const startDate = parseDate(startValue) || parseDate(fallbackDate);
-  const dateKey = startDate
-    ? `${startDate.getFullYear()}-${`${startDate.getMonth() + 1}`.padStart(
-        2,
-        "0"
-      )}-${`${startDate.getDate()}`.padStart(2, "0")}`
-    : null;
+  const startLocal =
+    toLocalDayjs(startValue) || toLocalDayjs(fallbackDate) || null;
 
-  const timeLabel = startDate
-    ? startDate.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+  const startDate = startLocal ? startLocal.toDate() : null;
+  const dateKey = startLocal ? startLocal.format("YYYY-MM-DD") : null;
+
+  const timeLabel = startLocal
+    ? fmtLocalTime(startLocal, "HH:mm")
     : showtime.startTimeText || showtime.startTimeDisplay || showtime.time;
 
   return {
     id: showtime.id || showtime.showtimeId || showtime.showTimeId || null,
+    roomId: showtime.roomId || showtime.room?.id || showtime.roomID || null,
     cinemaId: showtime.cinemaId ?? showtime.cinema?.id ?? null,
     cinemaName:
       showtime.cinemaName ||
@@ -123,23 +123,12 @@ export function normalizeShowtime(showtime = {}) {
 
 export function formatDateLabel(dateKey) {
   if (!dateKey) return { label: "", weekday: "", day: "", month: "" };
-  const date = parseDate(`${dateKey}T00:00:00`);
-  if (!date) return { label: dateKey, weekday: dateKey, day: "", month: "" };
+  const parts = formatLocalDateParts(`${dateKey}T00:00:00`);
+  if (!parts.label) {
+    return { label: dateKey, weekday: dateKey, day: "", month: "" };
+  }
 
-  const weekday = date
-    .toLocaleDateString("vi-VN", { weekday: "short" })
-    .replace(".", "");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  const month = date
-    .toLocaleDateString("vi-VN", { month: "short" })
-    .replace(".", "");
-
-  return {
-    label: `${weekday} ${day}/${`${date.getMonth() + 1}`.padStart(2, "0")}`,
-    weekday,
-    day,
-    month,
-  };
+  return parts;
 }
 
 export function formatCurrency(value) {
@@ -274,10 +263,10 @@ export function groupShowtimesByCinema(items = []) {
 
 export function sortDateKeys(keys = []) {
   return keys.slice().sort((a, b) => {
-    const da = parseDate(`${a}T00:00:00`);
-    const db = parseDate(`${b}T00:00:00`);
+    const da = toLocalDayjs(`${a}T00:00:00`);
+    const db = toLocalDayjs(`${b}T00:00:00`);
     if (!da || !db) return a.localeCompare(b);
-    return da.getTime() - db.getTime();
+    return da.valueOf() - db.valueOf();
   });
 }
 
