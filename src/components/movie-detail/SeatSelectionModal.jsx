@@ -4,6 +4,9 @@ import {
   formatCurrency,
   formatDateLabel,
 } from "../../services/movieDetailService";
+
+import { toLocalDayjs, fmtLocalTime } from "../../utils/datetime.js";
+
 import {
   getSeatLayout,
   getShowtimeSeatLayout,
@@ -20,6 +23,11 @@ import {
   extractPaymentUrl,
 } from "../../services/paymentService";
 import "../../css/SeatSelectionModal.css";
+
+import {
+  PAYMENT_GATEWAY_WINDOW_NAME,
+  PAYMENT_GATEWAY_WINDOW_REF,
+} from "../payment/paymentIntegration";
 
 const STATUS_LABELS = [
   { key: "available", label: "Ghế trống" },
@@ -43,17 +51,19 @@ function pickMovieTitle(movie) {
 function buildShowtimeDateText(showtime) {
   if (!showtime) return "";
 
-  if (showtime.startDate instanceof Date && !Number.isNaN(showtime.startDate)) {
-    const date = showtime.startDate;
-    const weekday = date
-      .toLocaleDateString("vi-VN", { weekday: "short" })
-      .replace(".", "");
-    const day = `${date.getDate()}`.padStart(2, "0");
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    const time = date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const startLocal =
+    toLocalDayjs(showtime.startDate) ||
+    toLocalDayjs(showtime.startTime) ||
+    toLocalDayjs(showtime.startAt) ||
+    toLocalDayjs(showtime.showTime) ||
+    toLocalDayjs(showtime.beginTime) ||
+    toLocalDayjs(showtime.time);
+
+  if (startLocal) {
+    const weekday = startLocal.locale("vi").format("ddd").replace(".", "");
+    const day = startLocal.format("DD");
+    const month = startLocal.format("MM");
+    const time = fmtLocalTime(startLocal, "HH:mm");
     return `${weekday} ${day}/${month} • ${time}`;
   }
 
@@ -965,8 +975,41 @@ export default function SeatSelectionModal({
     if (!paymentUrl) return;
 
     try {
-      if (typeof window !== "undefined" && typeof window.open === "function") {
-        window.open(paymentUrl, "_blank", "noopener,noreferrer");
+      if (typeof window === "undefined" || typeof window.open !== "function") {
+        return;
+      }
+
+      const existingWindow = window[PAYMENT_GATEWAY_WINDOW_REF];
+      if (existingWindow && !existingWindow.closed) {
+        try {
+          existingWindow.close();
+        } catch (closeError) {
+          console.warn("Không đóng được cửa sổ thanh toán cũ", closeError);
+        }
+      }
+
+      window[PAYMENT_GATEWAY_WINDOW_REF] = null;
+
+      const newWindow = window.open(
+        "",
+        PAYMENT_GATEWAY_WINDOW_NAME,
+        "noopener,noreferrer"
+      );
+
+      if (newWindow) {
+        window[PAYMENT_GATEWAY_WINDOW_REF] = newWindow;
+
+        try {
+          newWindow.location = paymentUrl;
+        } catch (assignError) {
+          console.warn("Không đặt được URL cho cửa sổ thanh toán", assignError);
+          newWindow.document.location.href = paymentUrl;
+        }
+
+        newWindow.focus?.();
+      } else {
+        window.location.href = paymentUrl;
+        window[PAYMENT_GATEWAY_WINDOW_REF] = null;
       }
     } catch (error) {
       console.error("Open payment url error", error);

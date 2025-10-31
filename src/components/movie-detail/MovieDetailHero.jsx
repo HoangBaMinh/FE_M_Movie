@@ -57,7 +57,7 @@ export default function MovieDetailHero({
           {averageRating != null ? (
             <div className="movie-detail-rating">
               <span className="movie-detail-rating-value">{averageRating}</span>
-              <span className="movie-detail-rating-label">/10</span>
+              <span className="movie-detail-rating-label">/5</span>
             </div>
           ) : null}
           {reviewCount != null ? (

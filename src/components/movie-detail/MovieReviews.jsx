@@ -1,3 +1,5 @@
+import { fmtLocalDate } from "../../utils/datetime.js";
+
 export default function MovieReviews({
   movie,
   movieError,
@@ -30,7 +32,7 @@ export default function MovieReviews({
                 <span className="movie-detail-review-score-value">
                   {averageRating}
                 </span>
-                <span className="movie-detail-review-score-max">/10</span>
+                <span className="movie-detail-review-score-max">/5</span>
               </div>
             ) : (
               <div className="movie-detail-review-score movie-detail-review-score--empty">
@@ -74,15 +76,16 @@ export default function MovieReviews({
                       </span>
                       {review.createdAt || review.createdDate ? (
                         <span className="movie-detail-review-date">
-                          {new Date(
-                            review.createdAt || review.createdDate
-                          ).toLocaleDateString("vi-VN")}
+                          {fmtLocalDate(
+                            review.createdAt || review.createdDate,
+                            "DD/MM/YYYY"
+                          )}
                         </span>
                       ) : null}
                     </div>
                     {review.rating != null ? (
                       <span className="movie-detail-review-rating">
-                        {Number(review.rating).toFixed(1)} / 10
+                        {Number(review.rating).toFixed(1)} / 5
                       </span>
                     ) : null}
                   </div>

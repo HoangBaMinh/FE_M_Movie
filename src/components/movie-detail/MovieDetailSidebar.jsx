@@ -1,10 +1,9 @@
-+95 - 0;
-
 import { Link } from "react-router-dom";
 import {
   resolveMovieLink,
   resolvePosterMeta,
 } from "../../services/movieDetailService";
+import { fmtLocalDate } from "../../utils/datetime.js";
 
 export default function MovieDetailSidebar({
   nowShowing = [],
@@ -85,7 +84,7 @@ export default function MovieDetailSidebar({
                     </span>
                     {item.releaseDate ? (
                       <span className="movie-detail-sidebar-date">
-                        {new Date(item.releaseDate).toLocaleDateString("vi-VN")}
+                        {fmtLocalDate(item.releaseDate, "DD/MM/YYYY")}
                       </span>
                     ) : null}
                   </div>
