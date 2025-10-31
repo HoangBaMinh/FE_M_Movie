@@ -34,6 +34,7 @@ import MovieDetailSidebar from "./MovieDetailSidebar";
 import MovieTrailerModal from "./MovieTrailerModal";
 import "../../css/MovieDetailPage.css";
 import SeatSelectionModal from "./SeatSelectionModal";
+import AppFooter from "../footer/AppFooter";
 
 export default function MovieDetailPage() {
   const { movieSlug } = useParams();
@@ -582,6 +583,8 @@ export default function MovieDetailPage() {
         showtime={selectedShowtime}
         movie={movie}
       />
+
+      <AppFooter />
     </div>
   );
 }
